@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent, FormEvent, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -49,6 +49,11 @@ interface SignUpRequestBody {
   role: 'user' | 'admin';
 }
 
+// Type for the forgot password API call (only email)
+interface ForgotPasswordRequestBody {
+  email: string;
+}
+
 interface SignUpResponse {
   message: string;
 }
@@ -64,11 +69,23 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationFilled, setRegistrationFilled] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false); // New state
   const [pin, setPin] = useState<string[]>(['', '', '', '']);
   const [formError, setFormError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { error: apiError, loading, callApi } = useApiRequest<SignUpResponse, SignUpRequestBody | RegistrationPinRequestBody>();
+  const { error: apiError, loading, callApi } = useApiRequest<
+    SignUpResponse,
+    SignUpRequestBody | RegistrationPinRequestBody | ForgotPasswordRequestBody
+  >();
+
+  // Refs for PIN input fields
+  const pinRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
 
   const inputFields: InputField[] = [
     {
@@ -121,31 +138,37 @@ const SignUp = () => {
   };
 
   const handlePinChange = async (e: ChangeEvent<HTMLInputElement>, index: number) => {
-    const newPin = [...pin];
-    newPin[index] = e.target.value;
-    setPin(newPin);
+    const value = e.target.value;
+    if (/^\d$/.test(value)) {
+      const newPin = [...pin];
+      newPin[index] = value;
+      setPin(newPin);
 
-    // Check if all 4 PIN digits are filled and this is the last one (index 3)
-    if (index === 3 && newPin.every((digit) => digit.length === 1)) {
-      const pinString = newPin.join('');
-      const body: SignUpRequestBody = {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        password: user.password,
-        pin: pinString,
-        role: 'user',
-      };
+      if (index < 3) {
+        pinRefs[index + 1].current?.focus();
+      }
 
-      try {
-        await callApi({
-          url: ENDPOINTS.USERS,
-          method: 'POST',
-          body,
-        });
-        setModalOpen(true); // Show success modal on successful API call
-      } catch (err) {
-        console.error('API Error:', err);
+      if (index === 3 && newPin.every((digit) => digit.length === 1)) {
+        const pinString = newPin.join('');
+        const body: SignUpRequestBody = {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          password: user.password,
+          pin: pinString,
+          role: 'user',
+        };
+
+        try {
+          await callApi({
+            url: ENDPOINTS.USERS,
+            method: 'POST',
+            body,
+          });
+          setModalOpen(true);
+        } catch (err) {
+          console.error('API Error:', err);
+        }
       }
     }
   };
@@ -154,6 +177,22 @@ const SignUp = () => {
     e.preventDefault();
     if (registrationFilled) {
       // PIN submission handled in handlePinChange
+    } else if (forgotPassword) {
+      // Forgot Password submission
+      const body: ForgotPasswordRequestBody = {
+        email: user.email,
+      };
+
+      try {
+        await callApi({
+          url: ENDPOINTS.FORGETPASSWORD,
+          method: 'POST',
+          body,
+        });
+        setModalOpen(true); // Show success modal (adjust message as needed)
+      } catch (err) {
+        console.error('API Error:', err);
+      }
     } else {
       if (user.password !== user.confirmPassword) {
         setFormError('Passwords do not match');
@@ -161,7 +200,6 @@ const SignUp = () => {
       }
       setFormError(null);
 
-      // API call to REGISTRATION_PIN with only firstName and email
       const body: RegistrationPinRequestBody = {
         firstName: user.firstName,
         email: user.email,
@@ -173,7 +211,7 @@ const SignUp = () => {
           method: 'POST',
           body,
         });
-        setRegistrationFilled(true); // On success, show PIN UI
+        setRegistrationFilled(true);
       } catch (err) {
         console.error('API Error:', err);
       }
@@ -182,6 +220,7 @@ const SignUp = () => {
 
   const handleModalClose = () => {
     setModalOpen(false);
+    if (forgotPassword) setForgotPassword(false); // Reset to sign-up form after forgot password success
   };
 
   // Show progress loader while API call is pending
@@ -217,27 +256,10 @@ const SignUp = () => {
       </Box>
 
       <Box width={1}>
-        <Typography variant="h3">Sign Up</Typography>
+        <Typography variant="h3">{forgotPassword ? 'Forgot Password' : 'Sign Up'}</Typography>
         <Typography mt={1.5} variant="body2" color="text.disabled">
-          Join us and start your journey today!
+          {forgotPassword ? 'Enter your email to reset your password.' : 'Join us and start your journey today!'}
         </Typography>
-
-        <Button
-          variant="contained"
-          color="secondary"
-          size="large"
-          fullWidth
-          startIcon={<IconifyIcon icon="logos:google-icon" />}
-          sx={{
-            mt: 4,
-            fontWeight: 600,
-            bgcolor: 'info.main',
-            '& .MuiButton-startIcon': { mr: 1.5 },
-            '&:hover': { bgcolor: 'info.main' },
-          }}
-        >
-          Sign up with Google
-        </Button>
 
         <Divider sx={{ my: 3 }}>or</Divider>
 
@@ -251,6 +273,7 @@ const SignUp = () => {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinChange(e, index)}
                   inputProps={{ maxLength: 1, style: { textAlign: 'center', fontSize: '24px' } }}
                   variant="filled"
+                  inputRef={pinRefs[index]}
                   sx={{
                     width: 50,
                     height: 60,
@@ -263,6 +286,38 @@ const SignUp = () => {
                   required
                 />
               ))}
+            </Stack>
+          ) : forgotPassword ? (
+            <Stack direction="column" spacing={3}>
+              <TextField
+                id="forgot-email"
+                name="email"
+                label="Email"
+                type="email"
+                value={user.email}
+                onChange={handleInputChange}
+                variant="filled"
+                placeholder="mail@example.com"
+                autoComplete="email"
+                fullWidth
+                required
+                autoFocus
+                sx={{
+                  mb: 3,
+                  '& .MuiFilledInput-root': {
+                    border: '1px solid grey',
+                    bgcolor: 'grey.100',
+                  },
+                }}
+              />
+              {formError && (
+                <Typography color="error" variant="body2">
+                  {formError}
+                </Typography>
+              )}
+              <Button type="submit" variant="contained" size="large" fullWidth>
+                Reset Password
+              </Button>
             </Stack>
           ) : (
             <Stack direction="column" spacing={3}>
@@ -343,37 +398,52 @@ const SignUp = () => {
           )}
         </Box>
 
-        <Typography
-          mt={3}
-          variant="body2"
-          textAlign={{ xs: 'center', md: 'left' }}
-          letterSpacing={0.25}
-        >
-          Already have an account?{' '}
-          <Link href={paths.signin} color="primary.main" fontWeight={600}>
-            Let's Sign in
-          </Link>
-        </Typography>
+        {!forgotPassword && !registrationFilled && (
+          <Typography
+            mt={3}
+            variant="body2"
+            textAlign={{ xs: 'center', md: 'left' }}
+            letterSpacing={0.25}
+          >
+            Already have an account?{' '}
+            <Link href={paths.signin} color="primary.main" fontWeight={600}>
+              Let's Sign in
+            </Link>
+            {' | '}
+            <Link
+              component="button"
+              onClick={() => setForgotPassword(true)}
+              color="primary.main"
+              fontWeight={600}
+            >
+              Forgot Password?
+            </Link>
+          </Typography>
+        )}
 
         {/* Success Modal */}
         <CustomModal
           open={modalOpen}
-          title="Registration Successful"
+          title={forgotPassword ? 'Password Reset Requested' : 'Registration Successful'}
           onCancel={handleModalClose}
           noConfirm={true}
         >
           <Typography variant="body1">
-            Your account has been created successfully! Would you like to log in now?
+            {forgotPassword
+              ? 'A password reset link has been sent to your email. Please check your inbox.'
+              : 'Your account has been created successfully! Would you like to log in now?'}
           </Typography>
-          <Button
-            component={Link}
-            href={paths.signin}
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-          >
-            Go to Login
-          </Button>
+          {!forgotPassword && (
+            <Button
+              component={Link}
+              href={paths.signin}
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+            >
+              Go to Login
+            </Button>
+          )}
         </CustomModal>
       </Box>
 

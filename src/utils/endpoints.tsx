@@ -8,5 +8,7 @@ export const ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/auth/login`,
   USERS: `${API_BASE_URL}/users`,
   LOGOUT: `${API_BASE_URL}/auth/logout`,
-  REGISTRATION_PIN: `${API_BASE_URL}/auth/register`
+  REGISTRATION_PIN: `${API_BASE_URL}/auth/register`,
+  FORGETPASSWORD: `${API_BASE_URL}/auth/send-password-reset-link`,
+  RESETPASSWORD: `${API_BASE_URL}/auth/reset-password`
 }

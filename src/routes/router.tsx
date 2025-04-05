@@ -9,6 +9,7 @@ const AuthLayout = lazy(() => import('layouts/auth-layout'));
 const Dashboard = lazy(() => import('pages/dashboard/Dashboard'));
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 const SignUp = lazy(() => import('pages/authentication/SignUp'));
+const ResetPassword = lazy(() => import('pages/authentication/ResetPassword')); // Import ResetPassword
 const Page404 = lazy(() => import('pages/errors/Page404'));
 const Home = lazy(() => import('pages/landingPage')); // Home as standalone entry point
 
@@ -58,6 +59,10 @@ export const routes = [
           {
             path: paths.signup, // 'sign-up' -> '/authentication/sign-up'
             element: <SignUp />,
+          },
+          {
+            path: paths.resetPassword, // 'reset-password' -> '/authentication/reset-password'
+            element: <ResetPassword />,
           },
         ],
       },

@@ -1,4 +1,6 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -11,7 +13,9 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
 import IconifyIcon from 'components/base/IconifyIcon';
+import { loginUser } from 'store/slices/userSlice'; // Import loginUser thunk
 import paths from 'routes/paths';
+import { AppDispatch } from 'store'; // Import AppDispatch to type dispatch
 
 interface User {
   [key: string]: string;
@@ -20,14 +24,26 @@ interface User {
 const SignIn = () => {
   const [user, setUser] = useState<User>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null); // For handling login errors
+  const dispatch = useDispatch<AppDispatch>(); // Correctly type dispatch
+  const navigate = useNavigate();
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(user);
+    
+    const action = await dispatch(loginUser({ email: user.email, password: user.password }));
+
+    if (loginUser.fulfilled.match(action)) {
+      // On success, navigate to the dashboard
+      navigate(paths.dashboard);
+    } else {
+      // Handle error if login fails
+      setError(action.payload as string); // Set error message from the rejected thunk
+    }
   };
 
   return (
@@ -146,6 +162,12 @@ const SignIn = () => {
               Forgot password?
             </Link>
           </Stack>
+
+          {error && (
+            <Typography color="error" variant="body2" mt={2}>
+              {error}
+            </Typography>
+          )}
 
           <Button type="submit" variant="contained" size="large" sx={{ mt: 3 }} fullWidth>
             Sign In

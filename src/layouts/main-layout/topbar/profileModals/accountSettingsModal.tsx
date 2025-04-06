@@ -5,6 +5,7 @@ interface ModalProps {
   handleClose: () => void;
 }
 
+
 export const AccountSettingsModal = ({ open, handleClose }: ModalProps) => (
   <CustomModal open={open} onCancel={handleClose} title="Account Settings">
     <div>Account settings form goes here...</div>

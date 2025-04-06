@@ -38,7 +38,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onCancel} color="secondary" variant="outlined">
+        <Button onClick={onCancel} color="secondary" variant="outlined" sx={{backgroundColor: 'red', border: 'none'}}>
           Cancel
         </Button>
 

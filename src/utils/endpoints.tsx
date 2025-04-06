@@ -10,5 +10,6 @@ export const ENDPOINTS = {
   LOGOUT: `${API_BASE_URL}/auth/logout`,
   REGISTRATION_PIN: `${API_BASE_URL}/auth/register`,
   FORGETPASSWORD: `${API_BASE_URL}/auth/send-password-reset-link`,
-  RESETPASSWORD: `${API_BASE_URL}/auth/reset-password`
+  RESETPASSWORD: `${API_BASE_URL}/auth/reset-password`,
+  VERIFICATION_SUBMISSION: `${API_BASE_URL}/kyc/submit`,
 }

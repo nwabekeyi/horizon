@@ -1,9 +1,10 @@
-import { Theme } from '@mui/material';
-import { Components } from '@mui/material/styles/components';
+import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
+import { Components } from '@mui/material/styles'; // Corrected import path for Components
 import scrollbar from 'theme/styles/scrollbar';
 import echart from 'theme/styles/echart';
 
-const CssBaseline: Components<Omit<Theme, 'components'>>['MuiCssBaseline'] = {
+// Using the correct type for the MuiCssBaseline component
+const CssBaseline: Components<Theme>['MuiCssBaseline'] = {
   defaultProps: {},
   styleOverrides: (theme) => ({
     '*, *::before, *::after': {

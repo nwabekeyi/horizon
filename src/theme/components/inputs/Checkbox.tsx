@@ -1,5 +1,5 @@
-import { Theme } from '@mui/material';
-import { Components } from '@mui/material/styles/components';
+import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
+import { Components } from '@mui/material/styles';
 import IconifyIcon from 'components/base/IconifyIcon';
 
 const Checkbox: Components<Omit<Theme, 'components'>>['MuiCheckbox'] = {

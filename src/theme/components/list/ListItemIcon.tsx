@@ -1,5 +1,5 @@
-import { Theme } from '@mui/material';
-import { Components } from '@mui/material/styles/components';
+import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
+import { Components } from '@mui/material/styles';
 
 const ListItemIcon: Components<Omit<Theme, 'components'>>['MuiListItemIcon'] = {
   styleOverrides: {

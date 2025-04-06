@@ -1,11 +1,11 @@
-import { TypographyOptions } from '@mui/material/styles/createTypography';
+import { ThemeOptions } from '@mui/material/styles';
 
 export const fontFamily = {
   DMSans: ['DM Sans', 'sans-serif'].join(','),
   poppins: ['Poppins', 'sans-serif'].join(','),
 };
 
-const typography: TypographyOptions = {
+const typography: ThemeOptions['typography'] = {
   fontFamily: fontFamily.DMSans,
   h1: {
     fontSize: '3rem',

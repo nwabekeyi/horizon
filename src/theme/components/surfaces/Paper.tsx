@@ -1,6 +1,5 @@
-import { Theme } from '@mui/material';
-import { Components } from '@mui/material/styles/components';
-import customShadows from 'theme/shadows';
+import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
+import { Components } from '@mui/material/styles';import customShadows from 'theme/shadows';
 
 const Paper: Components<Omit<Theme, 'components'>>['MuiPaper'] = {
   styleOverrides: {

@@ -53,7 +53,7 @@ const loginUser = createAsyncThunk(
       return thunkAPI.rejectWithValue('Network error');
     }
   }
-);
+);  
 
 const userSlice = createSlice({
   name: 'user',

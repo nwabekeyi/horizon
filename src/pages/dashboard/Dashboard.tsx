@@ -51,43 +51,43 @@ const Dashboard = (): JSX.Element => {
   return (
     <ThemeProvider theme={theme}>
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12 }}>
+        <Grid item xs={12}>
           <Analytics />
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <TotalSpent />
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Revenue />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <CardSecurity />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <Tasks />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <DailyTraffic />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <PiChart />
         </Grid>
-        <Grid size={{ xs: 12, lg: 8, xl: 6 }}>
+        <Grid item xs={12} lg={8} xl={6}>
           <TrendingNFTs />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <History />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <Calendar />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <BusinessDesign />
         </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4, xl: 3 }}>
+        <Grid item xs={12} md={6} lg={4} xl={3}>
           <TeamMembers />
         </Grid>
-        <Grid size={{ xs: 12, lg: 8, xl: 6 }}>
+        <Grid item xs={12} lg={8} xl={6}>
           <ComplexTable />
         </Grid>
       </Grid>

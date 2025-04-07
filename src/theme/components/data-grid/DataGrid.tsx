@@ -1,12 +1,11 @@
-import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
-import { Components } from '@mui/material/styles';
+// src/theme/components/data-grid/DataGrid.tsx
 
-const DataGrid: Components<Omit<Theme, 'components'>>['MuiDataGrid'] = {
+const DataGrid = {
   styleOverrides: {
-    root: ({ theme }) => ({
+    root: {
       border: 'none',
       borderRadius: '0 !important',
-      '--DataGrid-rowBorderColor': theme.palette.info.lighter,
+      '--DataGrid-rowBorderColor': '#e0e0e0',
       '&:hover, &:focus': {
         '*::-webkit-scrollbar, *::-webkit-scrollbar-thumb': {
           visibility: 'visible',
@@ -18,59 +17,68 @@ const DataGrid: Components<Omit<Theme, 'components'>>['MuiDataGrid'] = {
       '& .MuiDataGrid-scrollbarFiller': {
         minWidth: 0,
       },
-    }),
-    row: {
-      '&:hover': { backgroundColor: 'transparent' },
     },
-    cell: ({ theme }) => ({
+
+    row: {
+      '&:hover': {
+        backgroundColor: 'transparent',
+      },
+    },
+
+    cell: {
       padding: 0,
-      color: theme.palette.primary.darker,
-      fontSize: theme.typography.body2.fontSize,
+      color: '#1a1a1a',
+      fontSize: '14px',
       fontWeight: 600,
       '&:focus-within': {
         outline: 'none !important',
       },
-    }),
+    },
+
     cellCheckbox: {
       justifyContent: 'flex-end',
     },
+
     columnHeaderCheckbox: {
       '& .MuiDataGrid-columnHeaderTitleContainer': {
         justifyContent: 'flex-end',
       },
     },
-    columnHeader: ({ theme }) => ({
+
+    columnHeader: {
       padding: 0,
-      borderBottom: 1,
-      borderColor: `${theme.palette.info.main} !important`,
+      borderBottom: '1px solid #90caf9',
       height: '3rem !important',
       '&:focus-within': {
         outline: 'none !important',
       },
-    }),
-    columnHeaderTitle: ({ theme }) => ({
-      color: theme.palette.text.disabled,
-      fontSize: theme.typography.body2.fontSize,
+    },
+
+    columnHeaderTitle: {
+      color: '#9e9e9e',
+      fontSize: '14px',
       fontWeight: 500,
-    }),
-    iconButtonContainer: () => ({
+    },
+
+    iconButtonContainer: {
       '& .MuiIconButton-root': {
         backgroundColor: 'transparent !important',
         border: 'none',
       },
-    }),
+    },
+
     columnSeparator: {
       display: 'none',
     },
+
     selectedRowCount: {
       display: 'none',
     },
-    footerContainer: ({ theme }) => ({
+
+    footerContainer: {
       border: 0,
-      borderTop: 1,
-      borderStyle: 'solid',
-      borderColor: `${theme.palette.info.main} !important`,
-    }),
+      borderTop: '1px solid #90caf9',
+    },
   },
 };
 

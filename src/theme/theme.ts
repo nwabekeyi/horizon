@@ -42,6 +42,16 @@ import DateCalendar from './components/date-picker/DateCalendar';
 import InputLabel from './components/inputs/InputLabel';
 import Divider from './components/data-display/Divider';
 
+// Augment the MUI theme to include info in palette
+declare module '@mui/material/styles' {
+  interface Palette {
+    info: Palette['primary']; // Add info to palette
+  }
+  interface PaletteOptions {
+    info?: PaletteOptions['primary']; // Add info to palette options
+  }
+}
+
 export const theme = createTheme({
   palette,
   typography,

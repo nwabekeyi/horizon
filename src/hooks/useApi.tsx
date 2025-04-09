@@ -72,6 +72,7 @@ export function useApiRequest<T, B = unknown>() {
 
   const callApi = useCallback(async (params: ApiRequestParams<B>) => {
     setLoading(true);
+    console.log(loading);
     setError(null);
     try {
       const response = await apiRequest<T, B>(params);

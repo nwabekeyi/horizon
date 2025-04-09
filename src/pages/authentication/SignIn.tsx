@@ -34,6 +34,7 @@ interface ForgotPasswordResponse {
 }
 
 const SignIn = () => {
+  const [loading, setLoading] = useState<boolean>(false);
   const [user, setUser] = useState<User>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false); // New state for forgot password
@@ -42,8 +43,8 @@ const SignIn = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const { error: apiError, loading, callApi } = useApiRequest<ForgotPasswordResponse, ForgotPasswordRequestBody>();
-
+  const { error: apiError, callApi } = useApiRequest<ForgotPasswordResponse, ForgotPasswordRequestBody>();
+console.log(loading)
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
     setError(null);
@@ -51,6 +52,7 @@ const SignIn = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
 
     if (forgotPassword) {
       // Forgot Password submission
@@ -66,6 +68,7 @@ const SignIn = () => {
         });
         setModalOpen(true); // Show success modal
       } catch (err) {
+        setLoading(false);
         console.error('API Error:', err);
         setError('Failed to request password reset. Please try again.');
       }
@@ -77,6 +80,7 @@ const SignIn = () => {
         navigate(paths.dashboard);
       } else {
         setError(action.payload as string);
+        setLoading(false);
       }
     }
   };
@@ -88,7 +92,7 @@ const SignIn = () => {
 
   // Show progress loader while API call is pending
   if (loading) {
-    return <Progress />;
+    return <Box sx={{display: 'grid', placeContent: 'center', width: '100%' }}><Progress /></Box> ;
   }
 
   return (

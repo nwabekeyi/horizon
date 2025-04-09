@@ -1,4 +1,4 @@
-import paths, { rootPaths } from './paths';
+import paths from './paths';
 
 export interface SubMenuItem {
   subheader: string;
@@ -23,46 +23,39 @@ const sitemap: MenuItem[] = [
   {
     id: 1,
     subheader: 'Dashboard',
-    path: rootPaths.root,
+    path: paths.dashboard, // Now '/dashboard'
     icon: 'ic:round-home',
     active: true,
   },
   {
     id: 2,
     subheader: 'NFT Marketplace',
-    path: '#!',
+    path: `${paths.dashboard}/nft-marketplace`, // Now '/dashboard/nft-marketplace'
     icon: 'ic:outline-shopping-cart',
   },
   {
     id: 3,
-    subheader: 'Tables',
-    path: '#!',
-    icon: 'ic:round-bar-chart',
+    subheader: 'Transaction History',
+    path: `${paths.dashboard}/transaction-history`, // Now '/dashboard/transaction-history'
+    icon: 'ic:round-history',
   },
   {
     id: 4,
-    subheader: 'Kanban',
-    path: '#!',
-    icon: 'ic:round-dashboard',
+    subheader: 'Referral Program',
+    path: `${paths.dashboard}/referral-program`, // Now '/dashboard/referral-program'
+    icon: 'ic:round-gift',
   },
   {
     id: 5,
     subheader: 'Profile',
-    path: '#!',
+    path: `${paths.dashboard}/profile`, // Now '/dashboard/profile'
     icon: 'ic:baseline-person',
   },
   {
     id: 6,
-    subheader: 'Sign In',
-    path: paths.signin,
+    subheader: 'Investments',
+    path: `${paths.dashboard}/investment`, // Now '/dashboard/investment'
     icon: 'ic:round-lock',
-    active: true,
-  },
-  {
-    id: 7,
-    subheader: 'Sign Up',
-    path: paths.signup,
-    icon: 'ic:baseline-person-add-alt-1',
     active: true,
   },
 ];

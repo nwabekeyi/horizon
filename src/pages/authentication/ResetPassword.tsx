@@ -13,6 +13,7 @@ import { useApiRequest } from '../../hooks/useApi'; // Reusable API hook
 import Progress from '../../components/loading/Progress';
 import CustomModal from '../../components/base/modal';
 import { ENDPOINTS } from 'utils/endpoints';
+import Footer from 'layouts/main-layout/footer';
 
 interface PasswordResetForm {
   newPassword: string;
@@ -229,12 +230,7 @@ const PasswordReset = () => {
         </CustomModal>
       </Box>
 
-      <Typography variant="body2" color="text.disabled" fontWeight={500}>
-        © 2024 Horizon UI. Made with ❤️ by{' '}
-        <Link href="https://themewagon.com/" target="_blank" rel="noreferrer" fontWeight={600}>
-          {'ThemeWagon'}
-        </Link>{' '}
-      </Typography>
+    <Footer />
     </Stack>
   );
 };

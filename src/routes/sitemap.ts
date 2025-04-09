@@ -1,4 +1,4 @@
-import paths, { rootPaths } from './paths';
+import paths from './paths';
 
 export interface SubMenuItem {
   subheader: string;
@@ -23,48 +23,43 @@ const sitemap: MenuItem[] = [
   {
     id: 1,
     subheader: 'Dashboard',
-    path: rootPaths.root,
-    icon: 'ic:round-home',
+    path: paths.dashboard,
+    icon: 'ic:round-dashboard',
     active: true,
   },
+
   {
     id: 2,
-    subheader: 'NFT Marketplace',
-    path: '#!',
-    icon: 'ic:outline-shopping-cart',
-  },
-  {
-    id: 3,
-    subheader: 'Tables',
-    path: '#!',
-    icon: 'ic:round-bar-chart',
-  },
-  {
-    id: 4,
-    subheader: 'Kanban',
-    path: '#!',
-    icon: 'ic:round-dashboard',
-  },
-  {
-    id: 5,
     subheader: 'Profile',
-    path: '#!',
+    path: `${paths.dashboard}/profile`,
     icon: 'ic:baseline-person',
   },
   {
-    id: 6,
-    subheader: 'Sign In',
-    path: paths.signin,
-    icon: 'ic:round-lock',
+    id: 3,
+    subheader: 'Investments',
+    path: `${paths.dashboard}/investment`,
+    icon: 'ic:baseline-trending-up', // Replaced 'lock' with a more relevant investment icon
     active: true,
   },
   {
-    id: 7,
-    subheader: 'Sign Up',
-    path: paths.signup,
-    icon: 'ic:baseline-person-add-alt-1',
-    active: true,
+    id: 4,
+    subheader: 'NFT Marketplace',
+    path: `${paths.dashboard}/nft-marketplace`,
+    icon: 'ic:baseline-shopping-cart',
+  },
+  {
+    id: 5,
+    subheader: 'Transaction History',
+    path: `${paths.dashboard}/transaction-history`,
+    icon: 'ic:round-history',
+  },
+  {
+    id: 6,
+    subheader: 'Referral Program',
+    path: `${paths.dashboard}/referral-program`,
+    icon: 'ic:baseline-card-giftcard',
   },
 ];
+
 
 export default sitemap;

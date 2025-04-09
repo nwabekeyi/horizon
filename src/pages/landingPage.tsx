@@ -26,7 +26,7 @@ const Home: React.FC = () => {
       <AppBar position="static" color="primary">
         <Toolbar sx={{minHeight: '50px'}}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Horizon
+            247AT
           </Typography>
           <Button color="inherit" onClick={handleRegisterClick}>
             Register

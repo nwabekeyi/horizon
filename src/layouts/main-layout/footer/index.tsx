@@ -2,6 +2,8 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <Typography
       mt={0.5}
@@ -13,9 +15,9 @@ const Footer = () => {
       letterSpacing={0.5}
       fontWeight={500}
     >
-      Made with ❤️ by{' '}
-      <Link href="https://themewagon.com/" target="_blank" rel="noreferrer" fontWeight={600}>
-        {'ThemeWagon'}
+      © {currentYear} {' '}
+      <Link href="/"  fontWeight={600}>
+        247AT
       </Link>
     </Typography>
   );

@@ -14,6 +14,7 @@ import { useApiRequest } from '../../hooks/useApi'; // Adjust path
 import Progress from '../../components/loading/Progress'; // Adjust path
 import CustomModal from '../../components/base/modal'; // Adjust path
 import { ENDPOINTS } from 'utils/endpoints';
+import Footer from 'layouts/main-layout/footer';
 
 interface User {
   firstName: string;
@@ -447,12 +448,7 @@ const SignUp = () => {
         </CustomModal>
       </Box>
 
-      <Typography variant="body2" color="text.disabled" fontWeight={500}>
-        © 2024 Horizon UI. Made with ❤️ by{' '}
-        <Link href="https://themewagon.com/" target="_blank" rel="noreferrer" fontWeight={600}>
-          {'ThemeWagon'}
-        </Link>{' '}
-      </Typography>
+<Footer />
     </Stack>
   );
 };

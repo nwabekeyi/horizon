@@ -35,7 +35,7 @@ const DrawerItems = () => {
             letterSpacing={1}
             fontFamily={fontFamily.poppins}
           >
-            Horizon
+            247AT
           </Typography>
         </ButtonBase>
       </Stack>

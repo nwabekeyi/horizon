@@ -11,7 +11,7 @@ interface RowsProps {
 export const rows: RowsProps[] = [
   {
     id: '#1001',
-    name: 'Horizon UI PRO',
+    name: '247AT',
     status: 'Approved',
     date: '18 Apr 2024',
     progress: 70,
@@ -20,7 +20,7 @@ export const rows: RowsProps[] = [
   },
   {
     id: '#1002',
-    name: 'Horizon UI Free',
+    name: '247AT',
     status: 'Disable',
     date: '26 Apr 2024',
     progress: 40,

@@ -18,7 +18,7 @@ const NFTMarketplace = lazy(() => import('pages/dashboard/NFTMarketplace'));
 const TransactionHistory = lazy(() => import('pages/dashboard/transaction-history'));
 const ReferralProgram = lazy(() => import('pages/dashboard/referralProgram'));
 const Profile = lazy(() => import('pages/dashboard/profile'));
-const Investment = lazy(() => import('pages/dashboard/investments'));
+const Investment = lazy(() => import('pages/dashboard/investments/index'));
 
 import PageLoader from 'components/loading/PageLoader';
 import Progress from 'components/loading/Progress';

@@ -1,11 +1,6 @@
 import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Box from '@mui/material/Box';
-import Tab from '@mui/material/Tab';
-import TabContext from '@mui/lab/TabContext';
-import TabList from '@mui/lab/TabList';
-import TabPanel from '@mui/lab/TabPanel';
-import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import MenuItem from '@mui/material/MenuItem';
@@ -17,6 +12,7 @@ import { useApiRequest } from '../../../../hooks/useApi';
 import { ENDPOINTS } from '../../../../utils/endpoints';
 import Progress from '../../../../components/loading/Progress';
 import { useCompressedDropzone } from '../../../../hooks/useDropzoneConfig';
+import { MultiStepFlow } from '../../../../components/common/multiStepFlow'; // Adjust path as needed
 
 interface ModalProps {
   open: boolean;
@@ -51,7 +47,6 @@ interface RootState {
 }
 
 export const VerificationModal = ({ open, handleClose }: ModalProps) => {
-  const [tabValue, setTabValue] = React.useState('1');
   const [verificationData, setVerificationData] = React.useState<VerificationData>({
     documentFront: null,
     documentBack: null,
@@ -132,7 +127,6 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
     formData.append('documentType', verificationData.documentType);
     formData.append('userId', userId);
 
-    // Log FormData entries for debugging
     for (const [key, value] of formData.entries()) {
       console.log(`${key}:`, value);
     }
@@ -163,213 +157,181 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
     return <Progress />;
   }
 
+  const steps = [
+    {
+      label: 'ID Card',
+      content: (
+        <>
+          <Typography variant="body1">Please upload the front and back of your ID card.</Typography>
+          <FormControl fullWidth>
+            <InputLabel id="document-type-label">Document Type</InputLabel>
+            <Select
+              labelId="document-type-label"
+              value={verificationData.documentType}
+              label="Document Type"
+              onChange={handleDocumentTypeChange}
+            >
+              <MenuItem value="passport">Passport</MenuItem>
+              <MenuItem value="driver_license">Driver's License</MenuItem>
+              <MenuItem value="national_id">National ID</MenuItem>
+            </Select>
+          </FormControl>
+          <Box
+            {...documentFrontDropzone.getRootProps()}
+            sx={{
+              border: '2px dashed #ccc',
+              padding: 2,
+              textAlign: 'center',
+              bgcolor: documentFrontDropzone.isDragActive ? '#f0f0f0' : 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            <input {...documentFrontDropzone.getInputProps()} />
+            {verificationData.documentFront ? (
+              <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
+                {isImage(verificationData.documentFront) && (
+                  <img
+                    src={URL.createObjectURL(verificationData.documentFront)}
+                    alt="Front Preview"
+                    style={{ maxWidth: '100px', maxHeight: '100px' }}
+                  />
+                )}
+                <Typography>Front: {verificationData.documentFront.name}</Typography>
+              </Stack>
+            ) : (
+              <Typography>Drag or click to upload front of ID (JPEG, PNG, WEBP)</Typography>
+            )}
+          </Box>
+          <Box
+            {...documentBackDropzone.getRootProps()}
+            sx={{
+              border: '2px dashed #ccc',
+              padding: 2,
+              textAlign: 'center',
+              bgcolor: documentBackDropzone.isDragActive ? '#f0f0f0' : 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            <input {...documentBackDropzone.getInputProps()} />
+            {verificationData.documentBack ? (
+              <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
+                {isImage(verificationData.documentBack) && (
+                  <img
+                    src={URL.createObjectURL(verificationData.documentBack)}
+                    alt="Back Preview"
+                    style={{ maxWidth: '100px', maxHeight: '100px' }}
+                  />
+                )}
+                <Typography>Back: {verificationData.documentBack.name}</Typography>
+              </Stack>
+            ) : (
+              <Typography>Drag or click to upload back of ID (JPEG, PNG, WEBP)</Typography>
+            )}
+          </Box>
+        </>
+      ),
+      validate: () =>
+        !!verificationData.documentFront && !!verificationData.documentBack && !!verificationData.documentType,
+    },
+    {
+      label: 'Proof of Address',
+      content: (
+        <>
+          <Typography variant="body1">
+            Please upload a proof of address (e.g., utility bill, bank statement).
+          </Typography>
+          <Box
+            {...addressProofDropzone.getRootProps()}
+            sx={{
+              border: '2px dashed #ccc',
+              padding: 2,
+              textAlign: 'center',
+              bgcolor: addressProofDropzone.isDragActive ? '#f0f0f0' : 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            <input {...addressProofDropzone.getInputProps()} />
+            {verificationData.addressProof ? (
+              <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
+                {isImage(verificationData.addressProof) && (
+                  <img
+                    src={URL.createObjectURL(verificationData.addressProof)}
+                    alt="Address Proof Preview"
+                    style={{ maxWidth: '100px', maxHeight: '100px' }}
+                  />
+                )}
+                <Typography>{verificationData.addressProof.name}</Typography>
+              </Stack>
+            ) : (
+              <Typography>Drag or click to upload proof of address (JPEG, PNG, WEBP)</Typography>
+            )}
+          </Box>
+        </>
+      ),
+      validate: () => !!verificationData.addressProof,
+    },
+    {
+      label: 'Summary',
+      content: (
+        <>
+          <Typography variant="body1">Review your submitted documents:</Typography>
+          <Box>
+            <Typography variant="body2">
+              <strong>User ID:</strong> {userId || 'Not available'}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Document Type:</strong> {verificationData.documentType || 'Not selected'}
+            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="body2">
+                <strong>Front of ID:</strong>{' '}
+                {verificationData.documentFront ? verificationData.documentFront.name : 'Not uploaded'}
+              </Typography>
+              {isImage(verificationData.documentFront) && verificationData.documentFront && (
+                <img
+                  src={URL.createObjectURL(verificationData.documentFront)}
+                  alt="Front Preview"
+                  style={{ maxWidth: '50px', maxHeight: '50px' }}
+                />
+              )}
+            </Stack>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="body2">
+                <strong>Back of ID:</strong>{' '}
+                {verificationData.documentBack ? verificationData.documentBack.name : 'Not uploaded'}
+              </Typography>
+              {isImage(verificationData.documentBack) && verificationData.documentBack && (
+                <img
+                  src={URL.createObjectURL(verificationData.documentBack)}
+                  alt="Back Preview"
+                  style={{ maxWidth: '50px', maxHeight: '50px' }}
+                />
+              )}
+            </Stack>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="body2">
+                <strong>Proof of Address:</strong>{' '}
+                {verificationData.addressProof ? verificationData.addressProof.name : 'Not uploaded'}
+              </Typography>
+              {isImage(verificationData.addressProof) && verificationData.addressProof && (
+                <img
+                  src={URL.createObjectURL(verificationData.addressProof)}
+                  alt="Address Proof Preview"
+                  style={{ maxWidth: '50px', maxHeight: '50px' }}
+                />
+              )}
+            </Stack>
+          </Box>
+          {error && <Typography color="error" variant="body2">{error}</Typography>}
+          {apiError && <Typography color="error" variant="body2">{apiError.message}</Typography>}
+        </>
+      ),
+    },
+  ];
+
   return (
     <CustomModal open={open} onCancel={handleClose} title="Verify Account" noConfirm>
-      <Box sx={{ width: '100%', typography: 'body1', p: 2 }}>
-        <TabContext value={tabValue}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <TabList
-              aria-label="verification tabs"
-              TabIndicatorProps={{ style: { backgroundColor: '#1976d2' } }}
-            >
-              <Tab label="ID Card" value="1" disabled />
-              <Tab label="Proof of Address" value="2" disabled />
-              <Tab label="Summary" value="3" disabled />
-            </TabList>
-          </Box>
-
-          <TabPanel value="1">
-            <Stack direction="column" spacing={2}>
-              <Typography variant="body1">Please upload the front and back of your ID card.</Typography>
-              <FormControl fullWidth>
-                <InputLabel id="document-type-label">Document Type</InputLabel>
-                <Select
-                  labelId="document-type-label"
-                  value={verificationData.documentType}
-                  label="Document Type"
-                  onChange={handleDocumentTypeChange}
-                >
-                  <MenuItem value="passport">Passport</MenuItem>
-                  <MenuItem value="driver_license">Driver's License</MenuItem>
-                  <MenuItem value="national_id">National ID</MenuItem>
-                </Select>
-              </FormControl>
-              <Box
-                {...documentFrontDropzone.getRootProps()}
-                sx={{
-                  border: '2px dashed #ccc',
-                  padding: 2,
-                  textAlign: 'center',
-                  bgcolor: documentFrontDropzone.isDragActive ? '#f0f0f0' : 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                <input {...documentFrontDropzone.getInputProps()} />
-                {verificationData.documentFront ? (
-                  <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-                    {isImage(verificationData.documentFront) && (
-                      <img
-                        src={URL.createObjectURL(verificationData.documentFront)}
-                        alt="Front Preview"
-                        style={{ maxWidth: '100px', maxHeight: '100px' }}
-                      />
-                    )}
-                    <Typography>Front: {verificationData.documentFront.name}</Typography>
-                  </Stack>
-                ) : (
-                  <Typography>Drag or click to upload front of ID (JPEG, PNG, WEBP)</Typography>
-                )}
-              </Box>
-              <Box
-                {...documentBackDropzone.getRootProps()}
-                sx={{
-                  border: '2px dashed #ccc',
-                  padding: 2,
-                  textAlign: 'center',
-                  bgcolor: documentBackDropzone.isDragActive ? '#f0f0f0' : 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                <input {...documentBackDropzone.getInputProps()} />
-                {verificationData.documentBack ? (
-                  <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-                    {isImage(verificationData.documentBack) && (
-                      <img
-                        src={URL.createObjectURL(verificationData.documentBack)}
-                        alt="Back Preview"
-                        style={{ maxWidth: '100px', maxHeight: '100px' }}
-                      />
-                    )}
-                    <Typography>Back: {verificationData.documentBack.name}</Typography>
-                  </Stack>
-                ) : (
-                  <Typography>Drag or click to upload back of ID (JPEG, PNG, WEBP)</Typography>
-                )}
-              </Box>
-              <Button
-                variant="contained"
-                onClick={() => setTabValue('2')}
-                disabled={
-                  !verificationData.documentFront ||
-                  !verificationData.documentBack ||
-                  !verificationData.documentType
-                }
-              >
-                Next
-              </Button>
-            </Stack>
-          </TabPanel>
-
-          <TabPanel value="2">
-            <Stack direction="column" spacing={2}>
-              <Typography variant="body1">
-                Please upload a proof of address (e.g., utility bill, bank statement).
-              </Typography>
-              <Box
-                {...addressProofDropzone.getRootProps()}
-                sx={{
-                  border: '2px dashed #ccc',
-                  padding: 2,
-                  textAlign: 'center',
-                  bgcolor: addressProofDropzone.isDragActive ? '#f0f0f0' : 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                <input {...addressProofDropzone.getInputProps()} />
-                {verificationData.addressProof ? (
-                  <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-                    {isImage(verificationData.addressProof) && (
-                      <img
-                        src={URL.createObjectURL(verificationData.addressProof)}
-                        alt="Address Proof Preview"
-                        style={{ maxWidth: '100px', maxHeight: '100px' }}
-                      />
-                    )}
-                    <Typography>{verificationData.addressProof.name}</Typography>
-                  </Stack>
-                ) : (
-                  <Typography>Drag or click to upload proof of address (JPEG, PNG, WEBP)</Typography>
-                )}
-              </Box>
-              <Stack direction="row" spacing={2}>
-                <Button variant="outlined" onClick={() => setTabValue('1')}>
-                  Back
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => setTabValue('3')}
-                  disabled={!verificationData.addressProof}
-                >
-                  Next
-                </Button>
-              </Stack>
-            </Stack>
-          </TabPanel>
-
-          <TabPanel value="3">
-            <Stack direction="column" spacing={2}>
-              <Typography variant="body1">Review your submitted documents:</Typography>
-              <Box>
-                <Typography variant="body2">
-                  <strong>User ID:</strong> {userId || 'Not available'}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Document Type:</strong> {verificationData.documentType || 'Not selected'}
-                </Typography>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="body2">
-                    <strong>Front of ID:</strong>{' '}
-                    {verificationData.documentFront ? verificationData.documentFront.name : 'Not uploaded'}
-                  </Typography>
-                  {isImage(verificationData.documentFront) && verificationData.documentFront && (
-                    <img
-                      src={URL.createObjectURL(verificationData.documentFront)}
-                      alt="Front Preview"
-                      style={{ maxWidth: '50px', maxHeight: '50px' }}
-                    />
-                  )}
-                </Stack>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="body2">
-                    <strong>Back of ID:</strong>{' '}
-                    {verificationData.documentBack ? verificationData.documentBack.name : 'Not uploaded'}
-                  </Typography>
-                  {isImage(verificationData.documentBack) && verificationData.documentBack && (
-                    <img
-                      src={URL.createObjectURL(verificationData.documentBack)}
-                      alt="Back Preview"
-                      style={{ maxWidth: '50px', maxHeight: '50px' }}
-                    />
-                  )}
-                </Stack>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="body2">
-                    <strong>Proof of Address:</strong>{' '}
-                    {verificationData.addressProof ? verificationData.addressProof.name : 'Not uploaded'}
-                  </Typography>
-                  {isImage(verificationData.addressProof) && verificationData.addressProof && (
-                    <img
-                      src={URL.createObjectURL(verificationData.addressProof)}
-                      alt="Address Proof Preview"
-                      style={{ maxWidth: '50px', maxHeight: '50px' }}
-                    />
-                  )}
-                </Stack>
-              </Box>
-              {error && <Typography color="error" variant="body2">{error}</Typography>}
-              {apiError && <Typography color="error" variant="body2">{apiError.message}</Typography>}
-              <Stack direction="row" spacing={2}>
-                <Button variant="outlined" onClick={() => setTabValue('2')}>
-                  Back
-                </Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                  Submit
-                </Button>
-              </Stack>
-            </Stack>
-          </TabPanel>
-        </TabContext>
-      </Box>
+      <MultiStepFlow steps={steps} onSubmit={handleSubmit} />
     </CustomModal>
   );
 };

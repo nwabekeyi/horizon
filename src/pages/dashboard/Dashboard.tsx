@@ -49,7 +49,7 @@ const Dashboard = (): JSX.Element => {
   }, [navigate]);
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme} >
       <Grid container spacing={2.5}>
         <Grid item xs={12}>
           <Analytics />

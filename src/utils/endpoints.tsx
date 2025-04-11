@@ -1,4 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+const companiesUrl = `${API_BASE_URL}/companies`;
+const usersUrl = `${API_BASE_URL}/users`;
 
 if (!API_BASE_URL) {
   throw new Error("VITE_API_URL is not defined in your environment variables.");
@@ -6,10 +8,14 @@ if (!API_BASE_URL) {
 
 export const ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/auth/login`,
-  USERS: `${API_BASE_URL}/users`,
+  ALL_INDUSTRIES_CATEGORIES: `${API_BASE_URL}/industries`, // Adjusted for clarity
+  USERS: usersUrl,
+  COMPANIES: companiesUrl,
+  SUBSCRIBE: `${companiesUrl}/subscribe`,
+  COMPANY_BY_INDUSTRIES: `${companiesUrl}/industries`, // Adjusted to match backend route
   LOGOUT: `${API_BASE_URL}/auth/logout`,
   REGISTRATION_PIN: `${API_BASE_URL}/auth/register`,
   FORGETPASSWORD: `${API_BASE_URL}/auth/send-password-reset-link`,
   RESETPASSWORD: `${API_BASE_URL}/auth/reset-password`,
   VERIFICATION_SUBMISSION: `${API_BASE_URL}/kyc/submit`,
-}
+};

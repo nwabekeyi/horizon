@@ -9,14 +9,14 @@ const MainLayout = ({ children }: PropsWithChildren) => {
   const [isClosing, setIsClosing] = useState(false);
 
   return (
-    <Stack width={1} minHeight="100vh">
+    <Stack width={1} minHeight="calc(100vh - 162px)">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} setIsClosing={setIsClosing} />
       <Stack
         component="main"
         direction="column"
         px={3.5}
         flexGrow={1}
-        width={{ xs: 1, lg: 'calc(100% - 290px)' }}
+        width={{ xs: 1, lg: 'calc(100% - 290px)', minHeight: '100%'}}
       >
         <Topbar isClosing={isClosing} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         {children}

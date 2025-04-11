@@ -1,10 +1,7 @@
-import { fontFamily } from 'theme/typography';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
-import Stack from '@mui/material/Stack';
 import ButtonBase from '@mui/material/ButtonBase';
-import Typography from '@mui/material/Typography';
 import ListItem from './list-items/ListItem';
 import CollapseListItem from './list-items/CollapseListItem';
 import HorizonLogo from 'assets/images/logo-main.png';
@@ -15,30 +12,24 @@ import sitemap from 'routes/sitemap';
 const DrawerItems = () => {
   return (
     <>
-      <Stack
+      <Box
         pt={5}
         pb={4.5}
         px={4.5}
-        justifyContent="flex-start"
+        justifyContent="center"
         position="sticky"
         top={0}
         borderBottom={1}
         borderColor="info.main"
         bgcolor="info.lighter"
         zIndex={1000}
+        width= "100%"
+        display='flex'
       >
         <ButtonBase component={Link} href="/" disableRipple>
-          <Image src={HorizonLogo} alt="logo" height={44} width={44} sx={{ mr: 1.75 }} />
-          <Typography
-            variant="h3"
-            textTransform="uppercase"
-            letterSpacing={1}
-            fontFamily={fontFamily.poppins}
-          >
-            247AT
-          </Typography>
+          <Image src={HorizonLogo} alt="logo" height={60} width={80} sx={{ mr: 1.75 }} />
         </ButtonBase>
-      </Stack>
+      </Box>
 
       <List component="nav" sx={{ mt: 2.5, mb: 10, p: 0, pl: 3 }}>
         {sitemap.map((route) =>

@@ -1,10 +1,10 @@
 import { useReducer, useEffect } from 'react';
-import { useApiRequest } from '../../../hooks/useApi'; // Adjust path as needed
-import { ENDPOINTS } from '../../../utils/endpoints'; // Adjust path as needed
+import { useApiRequest } from '../../../../hooks/useApi'; // Adjust path as needed
+import { ENDPOINTS } from '../../../../utils/endpoints'; // Adjust path as needed
 import {
   InvestmentState,
   SubscribeResponse
-} from "./interfaces"
+} from "../interfaces"
 
 
 

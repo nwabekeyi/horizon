@@ -3,26 +3,18 @@ import { useSelector } from 'react-redux';
 import {
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
   Button,
   Grid,
   Paper,
-  List,
-  ListItem,
-  ListItemText,
   CircularProgress,
   Alert,
   SelectChangeEvent,
-  Stack,
 } from '@mui/material';
-import { RootState } from '../../../store'; // Adjust path to your store
-import { useInvestmentData } from './useInvestmentData'; // Adjust path as needed
-import { MultiStepFlow } from '../../../components/common/multiStepFlow'; // Adjust path as needed
-import { useCompressedDropzone } from '../../../hooks/useDropzoneConfig'; // Adjust path as needed
+import { RootState } from '../../../store';
+import { useInvestmentData } from './hooks/useInvestmentData';
+import { MultiStepFlow } from '../../../components/common/multiStepFlow';
+import { useCompressedDropzone } from '../../../hooks/useDropzoneConfig';
+import { useInvestmentSteps } from './hooks/useInvestmentSteps'; // Adjust path
 
 // Mock wire transfer details
 const wireTransferDetails: {
@@ -92,8 +84,7 @@ const Investment = () => {
 
   const handleCloseInvestmentFlow = () => {
     setIsInvestmentFlowOpen(false);
-    setPaymentProof(null); // Reset proof on close
-    // Optionally reset state if you want a fresh start each time
+    setPaymentProof(null);
     setInvestmentType('');
     setIndustry('');
     setSelectedCompany('', '');
@@ -104,229 +95,28 @@ const Investment = () => {
 
   const handleSubmitInvestmentFlow = () => {
     console.log('Investment Flow Completed:', {
+      userId, // Use userId
       ...state,
       paymentProof: paymentProof?.name || 'Not uploaded',
     });
     handleCloseInvestmentFlow();
   };
 
-  const isImage = (file: File | null): boolean => {
-    return !!file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
-  };
-
-  const investmentSteps = [
-    {
-      label: 'Investment Details',
-      content: (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Enter Investment Details
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Investment Type</InputLabel>
-                <Select
-                  value={state.investmentType}
-                  label="Investment Type"
-                  onChange={(e) => setInvestmentType(e.target.value as string)}
-                >
-                  <MenuItem value="fiat">Fiat</MenuItem>
-                  <MenuItem value="crypto">Crypto</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Industry</InputLabel>
-                <Select
-                  value={state.industry}
-                  label="Industry"
-                  onChange={(e) => setIndustry(e.target.value as string)}
-                >
-                  {allIndustries?.map((industry) => (
-                    <MenuItem key={industry} value={industry}>
-                      {industry}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Select Company</InputLabel>
-                <Select
-                  value={state.selectedCompany}
-                  label="Select Company"
-                  onChange={handleCompanyChange}
-                >
-                  {state.industries.map((company) => (
-                    <MenuItem key={company._id} value={company.name}>
-                      {company.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Investment Amount"
-                type="number"
-                value={state.amount}
-                onChange={(e) => setAmount(e.target.value)}
-                variant="outlined"
-              />
-            </Grid>
-          </Grid>
-        </Box>
-      ),
-      validate: () =>
-        !!state.investmentType &&
-        !!state.industry &&
-        !!state.selectedCompany &&
-        !!state.amount &&
-        parseFloat(state.amount) > 0,
-    },
-    {
-      label: 'Currency Selection',
-      content: (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Select Currency
-          </Typography>
-          {state.investmentType === 'crypto' ? (
-            <FormControl fullWidth>
-              <InputLabel>Crypto Currency</InputLabel>
-              <Select
-                value={state.cryptoType}
-                label="Crypto Currency"
-                onChange={(e) => setCryptoType(e.target.value as 'BTC' | 'ETH' | 'USDT' | '')}
-              >
-                <MenuItem value="BTC">Bitcoin (BTC)</MenuItem>
-                <MenuItem value="ETH">Ethereum (ETH)</MenuItem>
-                <MenuItem value="USDT">Tether (USDT)</MenuItem>
-              </Select>
-            </FormControl>
-          ) : (
-            <FormControl fullWidth>
-              <InputLabel>Fiat Currency</InputLabel>
-              <Select
-                value={state.fiatCurrency}
-                label="Fiat Currency"
-                onChange={(e) => setFiatCurrency(e.target.value as string)}
-              >
-                <MenuItem value="NGN">Nigerian Naira (NGN)</MenuItem>
-                <MenuItem value="USD">US Dollar (USD)</MenuItem>
-                <MenuItem value="EUR">Euro (EUR)</MenuItem>
-                <MenuItem value="GBP">British Pound (GBP)</MenuItem>
-                <MenuItem value="CAD">Canadian Dollar (CAD)</MenuItem>
-              </Select>
-            </FormControl>
-          )}
-        </Box>
-      ),
-      validate: () =>
-        state.investmentType === 'crypto' ? !!state.cryptoType : !!state.fiatCurrency,
-    },
-    {
-      label: 'Payment Details',
-      content: (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Payment Instructions
-          </Typography>
-          {state.investmentType === 'crypto' && state.cryptoType ? (
-            <>
-              <Typography variant="body1">
-                Send {state.cryptoType} to the following address:
-              </Typography>
-              <Typography variant="body2" sx={{ wordBreak: 'break-all', mt: 1 }}>
-                {cryptoAddresses[state.cryptoType]}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Ensure you send the exact amount: {state.amount} {state.cryptoType}
-              </Typography>
-            </>
-          ) : state.investmentType === 'fiat' && state.fiatCurrency ? (
-            <List>
-              <ListItem>
-                <ListItemText
-                  primary="Account Number"
-                  secondary={wireTransferDetails[state.fiatCurrency]?.account}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Bank"
-                  secondary={wireTransferDetails[state.fiatCurrency]?.bank}
-                />
-              </ListItem>
-              {['USD', 'CAD', 'NGN'].includes(state.fiatCurrency) && (
-                <ListItem>
-                  <ListItemText
-                    primary="Routing Number"
-                    secondary={wireTransferDetails[state.fiatCurrency]?.routing}
-                  />
-                </ListItem>
-              )}
-              {['EUR', 'GBP'].includes(state.fiatCurrency) && (
-                <ListItem>
-                  <ListItemText
-                    primary="IBAN"
-                    secondary={wireTransferDetails[state.fiatCurrency]?.iban}
-                  />
-                </ListItem>
-              )}
-              <Typography variant="caption" color="textSecondary">
-                Transfer {state.amount} {state.fiatCurrency} to this account.
-              </Typography>
-            </List>
-          ) : (
-            <Typography color="error">Please select a currency first.</Typography>
-          )}
-        </Box>
-      ),
-      validate: () => true, // No validation needed here; just display info
-    },
-    {
-      label: 'Upload Proof',
-      content: (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Upload Payment Proof
-          </Typography>
-          <Box
-            {...paymentProofDropzone.getRootProps()}
-            sx={{
-              border: '2px dashed #ccc',
-              padding: 2,
-              textAlign: 'center',
-              bgcolor: paymentProofDropzone.isDragActive ? '#f0f0f0' : 'transparent',
-              cursor: 'pointer',
-            }}
-          >
-            <input {...paymentProofDropzone.getInputProps()} />
-            {paymentProof ? (
-              <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-                {isImage(paymentProof) && (
-                  <img
-                    src={URL.createObjectURL(paymentProof)}
-                    alt="Proof Preview"
-                    style={{ maxWidth: '100px', maxHeight: '100px' }}
-                  />
-                )}
-                <Typography>{paymentProof.name}</Typography>
-              </Stack>
-            ) : (
-              <Typography>Drag or click to upload payment proof (JPEG, PNG, WEBP)</Typography>
-            )}
-          </Box>
-        </Box>
-      ),
-      validate: () => !!paymentProof,
-    },
-  ];
+  const investmentSteps = useInvestmentSteps({
+    state,
+    allIndustries,
+    paymentProof,
+    paymentProofDropzone,
+    setInvestmentType,
+    setIndustry,
+    setSelectedCompany,
+    setAmount,
+    setFiatCurrency,
+    setCryptoType,
+    handleCompanyChange,
+    cryptoAddresses,
+    wireTransferDetails,
+  });
 
   if (industriesLoading || companiesLoading) {
     return <CircularProgress />;
@@ -359,7 +149,6 @@ const Investment = () => {
         </Grid>
       </Paper>
 
-      {/* Investment Flow Modal */}
       {isInvestmentFlowOpen && (
         <Box
           sx={{
@@ -383,7 +172,7 @@ const Investment = () => {
             <Button
               variant="outlined"
               onClick={handleCloseInvestmentFlow}
-              sx={{ mt: 2 }}
+              sx={{ mt: 2, backgroundColor: '#D32F2F', border: 'none', textAlign: 'right' }}
             >
               Cancel
             </Button>

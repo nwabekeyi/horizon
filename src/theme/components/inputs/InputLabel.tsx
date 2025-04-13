@@ -8,7 +8,7 @@ const InputLabel: Components<Omit<Theme, 'components'>>['MuiInputLabel'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       left: 0,
-      top: theme.spacing(-3.75),
+      top: theme.spacing(-2.5),
       fontSize: theme.typography.body2.fontSize,
       color: theme.palette.text.primary,
       transform: 'none',

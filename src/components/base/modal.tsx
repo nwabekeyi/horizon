@@ -38,10 +38,9 @@ const CustomModal: React.FC<CustomModalProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onCancel} color="secondary" variant="outlined" sx={{backgroundColor: 'red', border: 'none'}}>
+        <Button onClick={onCancel} color="secondary" variant="contained">
           Cancel
         </Button>
-
         {!noConfirm && (
           <Button onClick={onConfirm} color="primary" variant="contained">
             Confirm

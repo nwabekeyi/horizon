@@ -1,6 +1,8 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const companiesUrl = `${API_BASE_URL}/companies`;
 const usersUrl = `${API_BASE_URL}/users`;
+const transactionsUrl = `${API_BASE_URL}/transactions`;
+
 
 if (!API_BASE_URL) {
   throw new Error("VITE_API_URL is not defined in your environment variables.");
@@ -18,4 +20,5 @@ export const ENDPOINTS = {
   FORGETPASSWORD: `${API_BASE_URL}/auth/send-password-reset-link`,
   RESETPASSWORD: `${API_BASE_URL}/auth/reset-password`,
   VERIFICATION_SUBMISSION: `${API_BASE_URL}/kyc/submit`,
+  TRANSACTIONS: transactionsUrl
 };

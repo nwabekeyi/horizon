@@ -8,9 +8,11 @@ export const white = {
 
 export const gray = {
   100: '#E0E5F2',
+  300: '#BCC1D0', // Add a gray shade for 300
   500: '#A3AED0',
   900: '#707EAE',
 };
+
 
 export const blue = {
   500: '#4481EB',

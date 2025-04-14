@@ -22,7 +22,7 @@ const Logo = () => {
         transform: 'translate(-50%, -50%)',
       })}
     >
-      <Image src={HorizonLogo} sx={{ width: 40, height: 40 }} />
+      <Image src={HorizonLogo} sx={{ width: 60, height: 40 }} />
     </Stack>
   );
 };

@@ -1,52 +1,66 @@
-// Define the state shape
+// src/pages/dashboard/investments/interfaces.ts
 export interface InvestmentState {
-    investmentType: string;
-    industry: string;
-    selectedCompany: string; // Company name for display
-    selectedCompanyId: string; // Company _id for submission
-    amount: string;
-    fiatCurrency: string;
-    cryptoType: 'BTC' | 'ETH' | 'USDT' | '';
-    industries: { _id: string; name: string; industry: string }[];
-  }
-
-// Define types for API responses
-export interface Company {
+  investmentType: string;
+  industry: string;
+  selectedCompany: string; // Company name for display
+  selectedCompanyId: string; // Company _id for submission
+  industries: {
     _id: string;
     name: string;
-    description?: string;
+    description: string;
     industry: string;
-    location?: string;
-    logoUrl?: string;
-    establishedYear?: number;
+    location: string;
+    logoUrl: string;
+    establishedYear: number;
     totalFiatInvestment: number;
     totalCryptoInvestment: number;
-    subscribers: {
-      userId: string;
-      fiatAmount: number;
-      cryptoAmount: number;
-      _id: string;
-    }[];
-    createdAt?: string;
-    updatedAt?: string;
-  }
+    subscribers: string[];
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+  }[];
+  amount: string;
+  fiatCurrency: string;
+  cryptoType: 'BTC' | 'ETH' | 'USDT' | '';
+}
 
-  export interface User {
+export interface Company {
+  _id: string;
+  name: string;
+  description: string;
+  industry: string;
+  location: string;
+  logoUrl: string;
+  establishedYear: number;
+  totalFiatInvestment: number;
+  totalCryptoInvestment: number;
+  subscribers: {
+    userId: string;
+    fiatAmount: number;
+    cryptoAmount: number;
     _id: string;
-    investments: {
-      id: number;
-      companyName: string;
-      amountInvested: number;
-      currencyType: string;
-      investmentDate: string;
-      roi: number;
-    }[];
-    // Add other user fields as needed
-  }
+  }[];
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
 
-  export interface SubscribeResponse {
-    message: string;
-    company: Company;
-    user: User;
-  }
+export interface User {
+  _id: string;
+  investments: {
+    id: number;
+    companyName: string;
+    amountInvested: number;
+    currencyType: string;
+    investmentDate: string;
+    roi: number;
+  }[];
+  // Add other user fields as needed
+}
 
+export interface SubscribeResponse {
+  success: boolean;
+  message: string;
+  company?: Company;
+  user?: User;
+}

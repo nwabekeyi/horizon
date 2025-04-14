@@ -1,12 +1,8 @@
-import { useReducer, useEffect } from 'react';
-import { useApiRequest } from '../../../../hooks/useApi'; // Adjust path as needed
-import { ENDPOINTS } from '../../../../utils/endpoints'; // Adjust path as needed
-import {
-  InvestmentState,
-  SubscribeResponse
-} from "../interfaces"
-
-
+// src/pages/dashboard/investments/hooks/useInvestmentData.tsx
+import { useReducer, useEffect, useState } from 'react';
+import { useApiRequest } from '../../../../hooks/useApi';
+import { ENDPOINTS } from '../../../../utils/endpoints';
+import { InvestmentState, SubscribeResponse } from '../interfaces';
 
 // Define action types
 type InvestmentAction =
@@ -16,7 +12,7 @@ type InvestmentAction =
   | { type: 'SET_AMOUNT'; payload: string }
   | { type: 'SET_FIAT_CURRENCY'; payload: string }
   | { type: 'SET_CRYPTO_TYPE'; payload: 'BTC' | 'ETH' | 'USDT' | '' }
-  | { type: 'SET_INDUSTRIES'; payload: { _id: string; name: string; industry: string }[] };
+  | { type: 'SET_INDUSTRIES'; payload: InvestmentState['industries'] };
 
 // Reducer function
 const investmentReducer = (state: InvestmentState, action: InvestmentAction): InvestmentState => {
@@ -26,7 +22,11 @@ const investmentReducer = (state: InvestmentState, action: InvestmentAction): In
     case 'SET_INDUSTRY':
       return { ...state, industry: action.payload };
     case 'SET_SELECTED_COMPANY':
-      return { ...state, selectedCompany: action.payload.name, selectedCompanyId: action.payload.id };
+      return {
+        ...state,
+        selectedCompany: action.payload.name,
+        selectedCompanyId: action.payload.id,
+      };
     case 'SET_AMOUNT':
       return { ...state, amount: action.payload };
     case 'SET_FIAT_CURRENCY':
@@ -40,24 +40,70 @@ const investmentReducer = (state: InvestmentState, action: InvestmentAction): In
   }
 };
 
-// Initial state
-const initialState: InvestmentState = {
-  investmentType: '',
-  industry: '',
-  selectedCompany: '',
-  selectedCompanyId: '',
-  amount: '',
-  fiatCurrency: '',
-  cryptoType: '',
-  industries: [],
+// Initialize state with localStorage data
+const getInitialState = (): InvestmentState => {
+  const savedData = localStorage.getItem('investmentForm');
+  if (savedData) {
+    try {
+      const parsedData = JSON.parse(savedData);
+      console.log('Loaded initial state from localStorage:', parsedData);
+      return {
+        investmentType: parsedData.investmentType || '',
+        industry: parsedData.industry || '',
+        selectedCompany: parsedData.selectedCompany || '',
+        selectedCompanyId: parsedData.selectedCompanyId || '',
+        amount: parsedData.amount || '',
+        fiatCurrency: parsedData.fiatCurrency || '',
+        cryptoType: parsedData.cryptoType || '',
+        industries: parsedData.industries || [],
+      };
+    } catch (err) {
+      console.error('Error parsing localStorage data:', err);
+    }
+  }
+  return {
+    investmentType: '',
+    industry: '',
+    selectedCompany: '',
+    selectedCompanyId: '',
+    amount: '',
+    fiatCurrency: '',
+    cryptoType: '',
+    industries: [],
+  };
 };
 
-export const useInvestmentData = (userId: string) => {
-  const [state, dispatch] = useReducer(investmentReducer, initialState);
+// Define error interface for API responses
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
 
-  const { data: allIndustries, error: industriesError, loading: industriesLoading, callApi: fetchAllIndustries } = useApiRequest<string[]>();
-  const { error: companiesError, loading: companiesLoading, callApi: fetchCompanies } = useApiRequest<{ _id: string; name: string; industry: string }[]>();
-  const { callApi: submitInvestment } = useApiRequest<SubscribeResponse>(); // Replace any with SubscribeResponse
+export const useInvestmentData = (userId: string, paymentProof: File | null) => {
+  const [state, dispatch] = useReducer(investmentReducer, getInitialState());
+  const [modalState, setModalState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    isError: boolean;
+  }>({ open: false, title: '', message: '', isError: false });
+
+  const {
+    data: allIndustries,
+    error: industriesError,
+    loading: industriesLoading,
+    callApi: fetchAllIndustries,
+  } = useApiRequest<string[]>();
+  const {
+    error: companiesError,
+    loading: companiesLoading,
+    callApi: fetchCompanies,
+  } = useApiRequest<InvestmentState['industries']>();
+  const { callApi: submitInvestment } = useApiRequest<SubscribeResponse>();
 
   // Fetch all industries on mount
   useEffect(() => {
@@ -84,55 +130,136 @@ export const useInvestmentData = (userId: string) => {
             method: 'GET',
           });
           dispatch({ type: 'SET_INDUSTRIES', payload: response || [] });
-          dispatch({ type: 'SET_SELECTED_COMPANY', payload: { name: '', id: '' } });
+          const isValidCompany = (response || []).some(
+            (company) => company._id === state.selectedCompanyId
+          );
+          if (!isValidCompany && state.selectedCompanyId) {
+            console.log('Resetting invalid selectedCompany:', state.selectedCompanyId);
+            dispatch({ type: 'SET_SELECTED_COMPANY', payload: { name: '', id: '' } });
+          }
         } catch (err) {
           console.error('Error fetching companies by industry:', err);
         }
       } else {
         dispatch({ type: 'SET_INDUSTRIES', payload: [] });
+        if (state.selectedCompanyId) {
+          dispatch({ type: 'SET_SELECTED_COMPANY', payload: { name: '', id: '' } });
+        }
       }
     };
     fetchCompaniesByIndustry();
   }, [state.industry, fetchCompanies]);
 
-  // Handlers
-  const setInvestmentType = (value: string) => dispatch({ type: 'SET_INVESTMENT_TYPE', payload: value });
+  // Save data to localStorage when form state changes
+  useEffect(() => {
+    console.log('Saving state to localStorage:', state);
+    localStorage.setItem('investmentForm', JSON.stringify(state));
+  }, [state]);
+
+  const setInvestmentType = (value: string) =>
+    dispatch({ type: 'SET_INVESTMENT_TYPE', payload: value });
   const setIndustry = (value: string) => dispatch({ type: 'SET_INDUSTRY', payload: value });
-  const setSelectedCompany = (name: string, id: string) => dispatch({ type: 'SET_SELECTED_COMPANY', payload: { name, id } });
+  const setSelectedCompany = (name: string, id: string) =>
+    dispatch({ type: 'SET_SELECTED_COMPANY', payload: { name, id } });
   const setAmount = (value: string) => dispatch({ type: 'SET_AMOUNT', payload: value });
-  const setFiatCurrency = (value: string) => dispatch({ type: 'SET_FIAT_CURRENCY', payload: value });
-  const setCryptoType = (value: 'BTC' | 'ETH' | 'USDT' | '') => dispatch({ type: 'SET_CRYPTO_TYPE', payload: value });
+  const setFiatCurrency = (value: string) =>
+    dispatch({ type: 'SET_FIAT_CURRENCY', payload: value });
+  const setCryptoType = (value: 'BTC' | 'ETH' | 'USDT' | '') =>
+    dispatch({ type: 'SET_CRYPTO_TYPE', payload: value });
+
+  const handleCloseModal = () => {
+    setModalState({ open: false, title: '', message: '', isError: false });
+  };
 
   const handleInvest = async () => {
     if (
-      !state.selectedCompanyId ||
+      !state.selectedCompany ||
       !state.amount ||
       (state.investmentType === 'fiat' && !state.fiatCurrency) ||
-      (state.investmentType === 'crypto' && !state.cryptoType)
+      (state.investmentType === 'crypto' && !state.cryptoType) ||
+      !paymentProof
     ) {
-      alert('Please fill in all required fields.');
+      setModalState({
+        open: true,
+        title: 'Validation Error',
+        message: 'Please fill in all required fields, including proof of payment.',
+        isError: true,
+      });
       return;
     }
 
-    const currencyType = state.investmentType === 'fiat' ? 'fiat' : 'crypto';
-    const payload = {
-      companyId: state.selectedCompanyId,
-      userId,
-      amount: parseFloat(state.amount),
-      currencyType,
+    if (!userId) {
+      setModalState({
+        open: true,
+        title: 'Authentication Error',
+        message: 'User ID is missing. Please log in and try again.',
+        isError: true,
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('companyName', state.selectedCompany);
+    formData.append('userId', userId);
+    formData.append('amount', state.amount);
+    formData.append('currencyType', state.investmentType);
+    if (state.investmentType === 'crypto') {
+      formData.append('cryptoCurrency', state.cryptoType.toLowerCase());
+    }
+    // Validate and prepare proof file
+    const mimeTypeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
     };
+    const fileExtension = paymentProof.name.split('.').pop()?.toLowerCase();
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    if (!fileExtension || !validExtensions.includes(fileExtension)) {
+      setModalState({
+        open: true,
+        title: 'File Error',
+        message: 'Invalid file format. Please upload a JPG, PNG, or WEBP file.',
+        isError: true,
+      });
+      return;
+    }
+    const mimeType = mimeTypeMap[fileExtension];
+    const fileName = paymentProof.name.includes('.') ? paymentProof.name : `proof.${fileExtension}`;
+    const proofFile = new File([paymentProof], fileName, { type: mimeType });
+    formData.append('proof', proofFile);
 
     try {
       const response = await submitInvestment({
-        url: ENDPOINTS.SUBSCRIBE,
+        url: ENDPOINTS.TRANSACTIONS,
         method: 'POST',
-        body: payload,
+        body: formData,
+        headers: {
+          // Let browser set Content-Type for FormData
+        },
       });
-      console.log('Investment submitted:', payload, 'Response:', response);
-      alert('Investment submitted successfully!');
-    } catch (err) {
+      console.log('Investment submitted:', Object.fromEntries(formData), 'Response:', response);
+      if (response?.success) {
+        localStorage.removeItem('investmentForm');
+        setModalState({
+          open: true,
+          title: 'Success',
+          message: 'Investment submitted successfully!',
+          isError: false,
+        });
+      } else {
+        throw new Error('No proof URL received');
+      }
+    } catch (err: unknown) {
       console.error('Error submitting investment:', err);
-      alert('Failed to submit investment. Please try again.');
+      const apiError = err as ApiError;
+      setModalState({
+        open: true,
+        title: 'Submission Error',
+        message:
+          apiError.response?.data?.message || apiError.message || 'Failed to submit investment. Please try again.',
+        isError: true,
+      });
     }
   };
 
@@ -150,5 +277,7 @@ export const useInvestmentData = (userId: string) => {
     setFiatCurrency,
     setCryptoType,
     handleInvest,
+    modalState,
+    handleCloseModal,
   };
 };

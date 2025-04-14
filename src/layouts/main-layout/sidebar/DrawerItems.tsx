@@ -27,7 +27,7 @@ const DrawerItems = () => {
         display='flex'
       >
         <ButtonBase component={Link} href="/" disableRipple>
-          <Image src={HorizonLogo} alt="logo" height={60} width={80} sx={{ mr: 1.75 }} />
+          <Image src={HorizonLogo} alt="logo" height={60} width={100} sx={{ mr: 1.75 }} />
         </ButtonBase>
       </Box>
 

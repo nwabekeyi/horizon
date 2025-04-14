@@ -13,7 +13,6 @@ export const ENDPOINTS = {
   ALL_INDUSTRIES_CATEGORIES: `${API_BASE_URL}/industries`, // Adjusted for clarity
   USERS: usersUrl,
   COMPANIES: companiesUrl,
-  SUBSCRIBE: `${companiesUrl}/subscribe`,
   COMPANY_BY_INDUSTRIES: `${companiesUrl}/industries`, // Adjusted to match backend route
   LOGOUT: `${API_BASE_URL}/auth/logout`,
   REGISTRATION_PIN: `${API_BASE_URL}/auth/register`,

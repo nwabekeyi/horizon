@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ENDPOINTS } from 'utils/endpoints';
 
 interface UserInfo {
-  id: string;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;

@@ -1,3 +1,4 @@
+// src/pages/dashboard/investments/index.tsx
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -14,7 +15,8 @@ import { RootState } from '../../../store';
 import { useInvestmentData } from './hooks/useInvestmentData';
 import { MultiStepFlow } from '../../../components/common/multiStepFlow';
 import { useCompressedDropzone } from '../../../hooks/useDropzoneConfig';
-import { useInvestmentSteps } from './hooks/useInvestmentSteps'; // Adjust path
+import { useInvestmentSteps } from './hooks/useInvestmentSteps';
+import CustomModal from 'components/base/modal';
 
 // Mock wire transfer details
 const wireTransferDetails: {
@@ -35,7 +37,8 @@ const cryptoAddresses: { BTC: string; ETH: string; USDT: string } = {
 };
 
 const Investment = () => {
-  const userId = useSelector((state: RootState) => state.user.user?.id || '');
+  const userId = useSelector((state: RootState) => state.user.user?._id || '');
+  console.log(userId)
   const [isInvestmentFlowOpen, setIsInvestmentFlowOpen] = useState(false);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
@@ -52,7 +55,10 @@ const Investment = () => {
     setAmount,
     setFiatCurrency,
     setCryptoType,
-  } = useInvestmentData(userId);
+    handleInvest,
+    modalState,
+    handleCloseModal,
+  } = useInvestmentData(userId, paymentProof);
 
   const paymentProofDropzone = useCompressedDropzone({
     onFileAccepted: (file: File) => {
@@ -85,20 +91,16 @@ const Investment = () => {
   const handleCloseInvestmentFlow = () => {
     setIsInvestmentFlowOpen(false);
     setPaymentProof(null);
-    setInvestmentType('');
-    setIndustry('');
-    setSelectedCompany('', '');
-    setAmount('');
-    setFiatCurrency('');
-    setCryptoType('');
+    // Do not reset state to preserve localStorage data
   };
 
-  const handleSubmitInvestmentFlow = () => {
+  const handleSubmitInvestmentFlow = async () => {
     console.log('Investment Flow Completed:', {
-      userId, // Use userId
+      userId,
       ...state,
       paymentProof: paymentProof?.name || 'Not uploaded',
     });
+    await handleInvest();
     handleCloseInvestmentFlow();
   };
 
@@ -179,6 +181,17 @@ const Investment = () => {
           </Paper>
         </Box>
       )}
+
+      <CustomModal
+        open={modalState.open}
+        title={modalState.title}
+        onCancel={handleCloseModal}
+        noConfirm={true}
+      >
+        <Typography color={modalState.isError ? 'error' : 'success'}>
+          {modalState.message}
+        </Typography>
+      </CustomModal>
     </Box>
   );
 };

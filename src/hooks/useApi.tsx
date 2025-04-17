@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 
 export interface ApiRequestParams<B = unknown> {
-  url: string;
+  url: string | null;
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: B;
-  headers?: Record<string, string>; // Explicitly define headers as optional
-  config?: Omit<RequestInit, 'headers' | 'method' | 'body'>; // Exclude headers from config to avoid overlap
+  headers?: Record<string, string>;
+  config?: Omit<RequestInit, 'headers' | 'method' | 'body'>;
 }
 
 export interface ApiError {
@@ -21,10 +21,16 @@ export const apiRequest = async <T, B = unknown>({
   headers = {},
   config = {},
 }: ApiRequestParams<B>): Promise<T> => {
+  if (!url) {
+    throw {
+      status: 400,
+      message: 'URL is required for API request',
+    } as ApiError;
+  }
+
   const options: RequestInit = {
     method,
     headers: {
-      // Only set Content-Type if explicitly provided or if body is JSON
       ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...headers,
     },
@@ -72,7 +78,6 @@ export function useApiRequest<T, B = unknown>() {
 
   const callApi = useCallback(async (params: ApiRequestParams<B>) => {
     setLoading(true);
-    console.log(loading);
     setError(null);
     try {
       const response = await apiRequest<T, B>(params);

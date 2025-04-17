@@ -2,7 +2,7 @@ import { Box, Typography, useTheme } from "@mui/material";
 import { FC } from "react";
 import { NavLink } from "react-router-dom";
 
-const Page404: FC = () => {
+const NotLoggedIn: FC = () => {
   const theme = useTheme();
 
   return (
@@ -18,18 +18,18 @@ const Page404: FC = () => {
         <img
           src="/static/illustration/error-page.svg"
           width="100%"
-          alt="Error 404"
+          alt="Not logged In"
         />
       </Box>
       <Typography variant="h2" fontWeight={700} color="primary.main" mt={3}>
-        Ooops... 404!
+        Ooops... You are not logged in
       </Typography>
       <Typography color="text.disabled" fontWeight={500}>
         The page you requested could not be found.
       </Typography>
 
       <NavLink
-        to="/dashboard"
+        to="/authentication/sign-in"
         style={{
           display: "block",
           marginTop: "1.5rem",
@@ -38,10 +38,10 @@ const Page404: FC = () => {
           color: theme.palette.primary.main,
         }}
       >
-        Back to Dashboard
+        Go to Login Page
       </NavLink>
     </Box>
   );
 };
 
-export default Page404;
+export default NotLoggedIn;

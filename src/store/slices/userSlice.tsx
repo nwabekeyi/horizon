@@ -1,17 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ENDPOINTS } from 'utils/endpoints';
-
-interface UserInfo {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-  profilePicture?: string;
-}
+import { User } from 'utils/interfaces';
 
 interface UserState {
-  user: UserInfo | null;
+  user: User | null;
   isLoggedIn: boolean;
   token: string | null;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -21,7 +13,7 @@ interface UserState {
 const initialState: UserState = {
   user: null,
   isLoggedIn: false,
-  token: sessionStorage.getItem('token'), // 👈 load from sessionStorage
+  token: sessionStorage.getItem('token'),
   status: 'idle',
   error: null,
 };
@@ -42,7 +34,6 @@ const loginUser = createAsyncThunk(
         return thunkAPI.rejectWithValue(data.message);
       }
 
-      // Store token in sessionStorage
       sessionStorage.setItem('token', data.token);
 
       return {
@@ -53,7 +44,7 @@ const loginUser = createAsyncThunk(
       return thunkAPI.rejectWithValue('Network error');
     }
   }
-);  
+);
 
 const userSlice = createSlice({
   name: 'user',
@@ -63,7 +54,7 @@ const userSlice = createSlice({
       state.user = null;
       state.isLoggedIn = false;
       state.token = null;
-      sessionStorage.removeItem('token'); // 👈 clear sessionStorage on logout
+      sessionStorage.removeItem('token');
     },
   },
   extraReducers: (builder) => {
@@ -73,11 +64,11 @@ const userSlice = createSlice({
       })
       .addCase(
         loginUser.fulfilled,
-        (state, action: PayloadAction<{ user: UserInfo; token: string }>) => {
+        (state, action: PayloadAction<{ user: User | null; token: string }>) => {
           state.status = 'succeeded';
           state.user = action.payload.user;
           state.token = action.payload.token;
-          state.isLoggedIn = true;
+          state.isLoggedIn = !!action.payload.user;
           state.error = null;
         }
       )

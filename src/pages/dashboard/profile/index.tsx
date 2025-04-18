@@ -153,14 +153,5 @@ const UserProfile: FC = () => {
   );
 };
 
-const friends = Array(9).fill({
-  name: "Selena Gomez",
-  image: "/static/avatar/012-woman-2.svg",
-  profession: "Marketing Manager",
-  facebookUrl: "",
-  twitterUrl: "",
-  instagramUrl: "",
-  dribbleUrl: "",
-});
 
 export default UserProfile;

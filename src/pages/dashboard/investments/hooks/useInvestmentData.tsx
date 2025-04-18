@@ -1,4 +1,3 @@
-// src/pages/dashboard/investments/hooks/useInvestmentData.tsx
 import { useReducer, useEffect, useState } from 'react';
 import { useApiRequest } from '../../../../hooks/useApi';
 import { ENDPOINTS } from '../../../../utils/endpoints';
@@ -105,6 +104,9 @@ export const useInvestmentData = (userId: string, paymentProof: File | null) => 
   } = useApiRequest<InvestmentState['industries']>();
   const { callApi: submitInvestment } = useApiRequest<SubscribeResponse>();
 
+  // Supported fiat currencies (NGN removed)
+  const supportedFiatCurrencies = ['USD', 'EUR', 'GBP', 'CAD'];
+
   // Fetch all industries on mount
   useEffect(() => {
     const fetchIndustries = async () => {
@@ -198,11 +200,38 @@ export const useInvestmentData = (userId: string, paymentProof: File | null) => 
       return;
     }
 
+    // Validate amount
+    const amountToSend = parseFloat(state.amount);
+    if (isNaN(amountToSend) || amountToSend <= 0) {
+      setModalState({
+        open: true,
+        title: 'Validation Error',
+        message: 'Please enter a valid investment amount.',
+        isError: true,
+      });
+      return;
+    }
+
+    if (state.investmentType === 'fiat') {
+      if (!supportedFiatCurrencies.includes(state.fiatCurrency)) {
+        setModalState({
+          open: true,
+          title: 'Validation Error',
+          message: `Unsupported fiat currency: ${state.fiatCurrency}. Please select a valid currency (USD, EUR, GBP, CAD).`,
+          isError: true,
+        });
+        return;
+      }
+    }
+
     const formData = new FormData();
     formData.append('companyName', state.selectedCompany);
     formData.append('userId', userId);
-    formData.append('amount', state.amount);
+    formData.append('amount', amountToSend.toString());
     formData.append('currencyType', state.investmentType);
+    if (state.investmentType === 'fiat') {
+      formData.append('fiatCurrency', state.fiatCurrency);
+    }
     if (state.investmentType === 'crypto') {
       formData.append('cryptoCurrency', state.cryptoType.toLowerCase());
     }
@@ -257,7 +286,9 @@ export const useInvestmentData = (userId: string, paymentProof: File | null) => 
         open: true,
         title: 'Submission Error',
         message:
-          apiError.response?.data?.message || apiError.message || 'Failed to submit investment. Please try again.',
+          apiError.response?.data?.message ||
+          apiError.message ||
+          'Failed to submit investment. Please try again.',
         isError: true,
       });
     }

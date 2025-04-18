@@ -10,7 +10,7 @@ import {
 import SearchInput from "pages/dashboard/profile/SearchInput";
 import UkoAvatar from "pages/dashboard/profile/UkoAvatar";
 import InvestmentCard from "pages/dashboard/profile/InvestmentCard";
-import FriendCard from "components/base/FriendCard";
+import Account from "pages/dashboard/profile/Account";
 import Profile from "pages/dashboard/profile/Profile"; // Make sure the Profile component is imported
 import { FC, SyntheticEvent, useState } from "react";
 import profileBanner from 'assets/images/profileBanner.jpg';
@@ -135,16 +135,12 @@ const UserProfile: FC = () => {
           </StyledTabPanel>
 
           <StyledTabPanel value="3">
-            <Typography variant="h6">Friends</Typography>
+            <Typography variant="h6">Account settings</Typography>
             <SearchInput placeholder="Search Friends..." sx={{ my: 2 }} />
 
-            <Grid container spacing={3}>
-              {friends.map((friend, index) => (
-                <Grid item lg={4} sm={6} xs={12} key={index}>
-                  <FriendCard friend={friend} />
+                <Grid item lg={4} sm={6} xs={12}>
+                  <Account user={user} />
                 </Grid>
-              ))}
-            </Grid>
           </StyledTabPanel>
 
           <StyledTabPanel value="4">

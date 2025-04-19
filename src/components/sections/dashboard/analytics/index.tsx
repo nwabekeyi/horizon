@@ -1,35 +1,50 @@
 import Grid from '@mui/material/Grid'; // Use Grid for MUI v5/6
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from 'theme/theme'; // Adjust path to your theme file
-import Earnings from './Earnings';
-import Sales from './Sales';
+import Roi from './ROI';
 import Spend from './Spend';
-import Tasks from './Tasks';
+import CompanyInvestedIn from './CompanyInvestedIn';
 import Balance from './balance';
 import Projects from './Projects';
+import { User } from 'utils/interfaces'; // Import User interface
+import TotalInvestments from './TotalInvestments';
+import {FC} from 'react'
+import useAnalytics from './hook/useAnalytics';
 
-const Analytics = () => {
+interface AnalyticsProps {
+  user: User | null;
+}
+
+const Analytics: FC<AnalyticsProps> = ({ user }) => {
+  const {
+    totalInvestment,
+    spentThisMonth,
+    ROI,
+    accountBalance,
+    investedCompanies
+  }= useAnalytics(user);
+  console.log(investedCompanies)
   return (
     <ThemeProvider theme={theme}>
       <Grid container spacing={2.5}>
         <Grid item xs={12} sm={6} md={4} xl={2}>
-          <Earnings />
+          <TotalInvestments totalInvestment={totalInvestment} />
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} xl={2}>
-          <Spend />
+          <Spend spent={spentThisMonth} />
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} xl={2}>
-          <Sales />
+          <Roi ROI={ROI} />
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} xl={2}>
-          <Balance />
+          <Balance balance={accountBalance}/>
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} xl={2}>
-          <Tasks />
+          <CompanyInvestedIn companiesInvested={investedCompanies.length} />
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} xl={2}>

@@ -1,175 +1,380 @@
-import { Box, Button, Card, IconButton, Typography, TextField, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
-import { FC, useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  IconButton,
+  Typography,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
+import { FC, useReducer } from "react";
 import { FaEye } from "react-icons/fa";
 import CustomModal from "components/base/modal"; // Adjust path to your CustomModal component
 import { User, PaymentDetail } from "utils/interfaces"; // Import existing User and PaymentDetail interfaces
+import { useApiRequest } from "hooks/useApi"; // Import the useApiRequest hook
+import { ENDPOINTS } from "utils/endpoints"; // Import the ENDPOINTS object
+import { useDispatch } from "react-redux";
+import { addPaymentDetail } from "store/slices/userSlice"; // Adjust path to your userSlice
+
+// Define interfaces for API request and response
+interface PaymentDetailPayload {
+  userId: string;
+  type: "fiat" | "crypto";
+  currency: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt";
+  accountDetails: {
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+    address?: string;
+    network?: "erc20" | "trc20" | "bep20" | "polygon" | "solana";
+  };
+}
+
+interface PaymentDetailResponse {
+  success: boolean;
+  message: string;
+  paymentDetail?: PaymentDetail;
+}
 
 // Component props
 interface AccountProps {
   user: User | null; // Allow null for user
 }
 
+// State interface
+interface State {
+  isPaymentModalOpen: boolean;
+  isKycModalOpen: boolean;
+  isTwoFAModalOpen: boolean;
+  isRecoveryEmailModalOpen: boolean;
+  paymentType: "fiat" | "crypto";
+  paymentCurrency: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "";
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  cryptoAddress: string;
+  network: "erc20" | "trc20" | "bep20" | "polygon" | "solana" | "";
+  paymentError: string;
+  kycDocumentType: string;
+  documentFront: File | null;
+  documentBack: File | null;
+  addressProof: File | null;
+  kycError: string;
+  twoFASecret: string;
+  twoFAError: string;
+  recoveryEmail: string;
+  recoveryEmailError: string;
+}
+
+// Action types
+type Action =
+  | { type: "SET_PAYMENT_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_KYC_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_TWO_FA_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_RECOVERY_EMAIL_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_PAYMENT_TYPE"; payload: "fiat" | "crypto" }
+  | { type: "SET_PAYMENT_CURRENCY"; payload: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "" }
+  | { type: "SET_BANK_NAME"; payload: string }
+  | { type: "SET_ACCOUNT_NUMBER"; payload: string }
+  | { type: "SET_ACCOUNT_NAME"; payload: string }
+  | { type: "SET_CRYPTO_ADDRESS"; payload: string }
+  | { type: "SET_NETWORK"; payload: "erc20" | "trc20" | "bep20" | "polygon" | "solana" | "" }
+  | { type: "SET_PAYMENT_ERROR"; payload: string }
+  | { type: "SET_KYC_DOCUMENT_TYPE"; payload: string }
+  | { type: "SET_DOCUMENT_FRONT"; payload: File | null }
+  | { type: "SET_DOCUMENT_BACK"; payload: File | null }
+  | { type: "SET_ADDRESS_PROOF"; payload: File | null }
+  | { type: "SET_KYC_ERROR"; payload: string }
+  | { type: "SET_TWO_FA_SECRET"; payload: string }
+  | { type: "SET_TWO_FA_ERROR"; payload: string }
+  | { type: "SET_RECOVERY_EMAIL"; payload: string }
+  | { type: "SET_RECOVERY_EMAIL_ERROR"; payload: string }
+  | { type: "RESET_PAYMENT_FORM" }
+  | { type: "RESET_KYC_FORM" }
+  | { type: "RESET_TWO_FA_FORM" }
+  | { type: "RESET_RECOVERY_EMAIL_FORM" };
+
+// Initial state
+const initialState: State = {
+  isPaymentModalOpen: false,
+  isKycModalOpen: false,
+  isTwoFAModalOpen: false,
+  isRecoveryEmailModalOpen: false,
+  paymentType: "fiat",
+  paymentCurrency: "",
+  bankName: "",
+  accountNumber: "",
+  accountName: "",
+  cryptoAddress: "",
+  network: "",
+  paymentError: "",
+  kycDocumentType: "",
+  documentFront: null,
+  documentBack: null,
+  addressProof: null,
+  kycError: "",
+  twoFASecret: "",
+  twoFAError: "",
+  recoveryEmail: "",
+  recoveryEmailError: "",
+};
+
+// Reducer function
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "SET_PAYMENT_MODAL_OPEN":
+      return { ...state, isPaymentModalOpen: action.payload };
+    case "SET_KYC_MODAL_OPEN":
+      return { ...state, isKycModalOpen: action.payload };
+    case "SET_TWO_FA_MODAL_OPEN":
+      return { ...state, isTwoFAModalOpen: action.payload };
+    case "SET_RECOVERY_EMAIL_MODAL_OPEN":
+      return { ...state, isRecoveryEmailModalOpen: action.payload };
+    case "SET_PAYMENT_TYPE":
+      return { ...state, paymentType: action.payload };
+    case "SET_PAYMENT_CURRENCY":
+      return { ...state, paymentCurrency: action.payload };
+    case "SET_BANK_NAME":
+      return { ...state, bankName: action.payload };
+    case "SET_ACCOUNT_NUMBER":
+      return { ...state, accountNumber: action.payload };
+    case "SET_ACCOUNT_NAME":
+      return { ...state, accountName: action.payload };
+    case "SET_CRYPTO_ADDRESS":
+      return { ...state, cryptoAddress: action.payload };
+    case "SET_NETWORK":
+      return { ...state, network: action.payload };
+    case "SET_PAYMENT_ERROR":
+      return { ...state, paymentError: action.payload };
+    case "SET_KYC_DOCUMENT_TYPE":
+      return { ...state, kycDocumentType: action.payload };
+    case "SET_DOCUMENT_FRONT":
+      return { ...state, documentFront: action.payload };
+    case "SET_DOCUMENT_BACK":
+      return { ...state, documentBack: action.payload };
+    case "SET_ADDRESS_PROOF":
+      return { ...state, addressProof: action.payload };
+    case "SET_KYC_ERROR":
+      return { ...state, kycError: action.payload };
+    case "SET_TWO_FA_SECRET":
+      return { ...state, twoFASecret: action.payload };
+    case "SET_TWO_FA_ERROR":
+      return { ...state, twoFAError: action.payload };
+    case "SET_RECOVERY_EMAIL":
+      return { ...state, recoveryEmail: action.payload };
+    case "SET_RECOVERY_EMAIL_ERROR":
+      return { ...state, recoveryEmailError: action.payload };
+    case "RESET_PAYMENT_FORM":
+      return {
+        ...state,
+        paymentType: "fiat",
+        paymentCurrency: "",
+        bankName: "",
+        accountNumber: "",
+        accountName: "",
+        cryptoAddress: "",
+        network: "",
+        paymentError: "",
+      };
+    case "RESET_KYC_FORM":
+      return {
+        ...state,
+        kycDocumentType: "",
+        documentFront: null,
+        documentBack: null,
+        addressProof: null,
+        kycError: "",
+      };
+    case "RESET_TWO_FA_FORM":
+      return {
+        ...state,
+        twoFASecret: "",
+        twoFAError: "",
+      };
+    case "RESET_RECOVERY_EMAIL_FORM":
+      return {
+        ...state,
+        recoveryEmail: "",
+        recoveryEmailError: "",
+      };
+    default:
+      return state;
+  }
+};
+
 const Account: FC<AccountProps> = ({ user }) => {
-  // Modal state
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isKycModalOpen, setIsKycModalOpen] = useState(false);
-  const [isTwoFAModalOpen, setIsTwoFAModalOpen] = useState(false);
-  const [isRecoveryPasswordModalOpen, setIsRecoveryPasswordModalOpen] = useState(false);
+  // Redux dispatch
+  const reduxDispatch = useDispatch();
 
-  // Payment form state
-  const [paymentType, setPaymentType] = useState<"fiat" | "crypto">("fiat");
-  const [paymentCurrency, setPaymentCurrency] = useState<string>("");
-  const [bankName, setBankName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [cryptoAddress, setCryptoAddress] = useState("");
-  const [paymentError, setPaymentError] = useState("");
+  // Reducer
+  const [state, dispatch] = useReducer(reducer, initialState);
 
-  // KYC form state
-  const [kycDocumentType, setKycDocumentType] = useState("");
-  const [documentFront, setDocumentFront] = useState<File | null>(null);
-  const [documentBack, setDocumentBack] = useState<File | null>(null);
-  const [addressProof, setAddressProof] = useState<File | null>(null);
-  const [kycError, setKycError] = useState("");
-
-  // 2FA form state
-  const [twoFASecret, setTwoFASecret] = useState("");
-  const [twoFAError, setTwoFAError] = useState("");
-
-  // Recovery Password form state
-  const [recoveryPassword, setRecoveryPassword] = useState("");
-  const [recoveryPasswordError, setRecoveryPasswordError] = useState("");
+  // API hook for payment details
+  const { callApi, loading, error: apiError } = useApiRequest<PaymentDetailResponse, PaymentDetailPayload>();
 
   // Modal handlers
-  const handlePaymentModalOpen = () => setIsPaymentModalOpen(true);
+  const handlePaymentModalOpen = () => dispatch({ type: "SET_PAYMENT_MODAL_OPEN", payload: true });
   const handlePaymentModalClose = () => {
-    setIsPaymentModalOpen(false);
-    setPaymentType("fiat");
-    setPaymentCurrency("");
-    setBankName("");
-    setAccountNumber("");
-    setAccountName("");
-    setCryptoAddress("");
-    setPaymentError("");
+    dispatch({ type: "SET_PAYMENT_MODAL_OPEN", payload: false });
+    dispatch({ type: "RESET_PAYMENT_FORM" });
   };
 
-  const handleKycModalOpen = () => setIsKycModalOpen(true);
+  const handleKycModalOpen = () => dispatch({ type: "SET_KYC_MODAL_OPEN", payload: true });
   const handleKycModalClose = () => {
-    setIsKycModalOpen(false);
-    setKycDocumentType("");
-    setDocumentFront(null);
-    setDocumentBack(null);
-    setAddressProof(null);
-    setKycError("");
+    dispatch({ type: "SET_KYC_MODAL_OPEN", payload: false });
+    dispatch({ type: "RESET_KYC_FORM" });
   };
 
-  const handleTwoFAModalOpen = () => setIsTwoFAModalOpen(true);
+  const handleTwoFAModalOpen = () => dispatch({ type: "SET_TWO_FA_MODAL_OPEN", payload: true });
   const handleTwoFAModalClose = () => {
-    setIsTwoFAModalOpen(false);
-    setTwoFASecret("");
-    setTwoFAError("");
+    dispatch({ type: "SET_TWO_FA_MODAL_OPEN", payload: false });
+    dispatch({ type: "RESET_TWO_FA_FORM" });
   };
 
-  const handleRecoveryPasswordModalOpen = () => setIsRecoveryPasswordModalOpen(true);
-  const handleRecoveryPasswordModalClose = () => {
-    setIsRecoveryPasswordModalOpen(false);
-    setRecoveryPassword("");
-    setRecoveryPasswordError("");
+  const handleRecoveryEmailModalOpen = () => dispatch({ type: "SET_RECOVERY_EMAIL_MODAL_OPEN", payload: true });
+  const handleRecoveryEmailModalClose = () => {
+    dispatch({ type: "SET_RECOVERY_EMAIL_MODAL_OPEN", payload: false });
+    dispatch({ type: "RESET_RECOVERY_EMAIL_FORM" });
   };
 
   // Validation functions
-  const validatePaymentDetails = () => {
-    if (!paymentCurrency) {
-      setPaymentError("Please select a currency");
+  const validatePaymentDetails = (): boolean => {
+    if (!state.paymentCurrency) {
+      dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please select a currency" });
       return false;
     }
-    if (paymentType === "fiat") {
-      if (!bankName || !accountNumber || !accountName) {
-        setPaymentError("Please fill in all bank details");
+    if (!state.paymentType) {
+      dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please select a payment type" });
+      return false;
+    }
+    if (state.paymentType === "fiat") {
+      if (!state.bankName || !state.accountNumber || !state.accountName) {
+        dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please fill in all bank details" });
         return false;
       }
-    } else if (paymentType === "crypto" && !cryptoAddress) {
-      setPaymentError("Please provide a crypto address");
+    } else if (state.paymentType === "crypto" && !state.cryptoAddress) {
+      dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please provide a crypto address" });
       return false;
     }
-    setPaymentError("");
+    dispatch({ type: "SET_PAYMENT_ERROR", payload: "" });
     return true;
   };
 
-  const validateKycDetails = () => {
-    if (!kycDocumentType) {
-      setKycError("Please select a document type");
+  const validateKycDetails = (): boolean => {
+    if (!state.kycDocumentType) {
+      dispatch({ type: "SET_KYC_ERROR", payload: "Please select a document type" });
       return false;
     }
-    if (!documentFront || !documentBack || !addressProof) {
-      setKycError("Please upload all required documents");
+    if (!state.documentFront || !state.documentBack || !state.addressProof) {
+      dispatch({ type: "SET_KYC_ERROR", payload: "Please upload all required documents" });
       return false;
     }
-    setKycError("");
+    dispatch({ type: "SET_KYC_ERROR", payload: "" });
     return true;
   };
 
-  const validateTwoFASecret = () => {
-    if (!twoFASecret) {
-      setTwoFAError("Please enter a 2FA secret");
+  const validateTwoFASecret = (): boolean => {
+    if (!state.twoFASecret) {
+      dispatch({ type: "SET_TWO_FA_ERROR", payload: "Please enter a 2FA secret" });
       return false;
     }
-    setTwoFAError("");
+    dispatch({ type: "SET_TWO_FA_ERROR", payload: "" });
     return true;
   };
 
-  const validateRecoveryPassword = () => {
-    if (!recoveryPassword) {
-      setRecoveryPasswordError("Please enter a recovery password");
+  const validateRecoveryEmail = (): boolean => {
+    if (!state.recoveryEmail) {
+      dispatch({ type: "SET_RECOVERY_EMAIL_ERROR", payload: "Please enter a recovery email" });
       return false;
     }
-    setRecoveryPasswordError("");
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(state.recoveryEmail)) {
+      dispatch({ type: "SET_RECOVERY_EMAIL_ERROR", payload: "Please enter a valid email address" });
+      return false;
+    }
+    dispatch({ type: "SET_RECOVERY_EMAIL_ERROR", payload: "" });
     return true;
   };
 
   // Form submission handlers
-  const handlePaymentSubmit = () => {
+  const handlePaymentSubmit = async (): Promise<void> => {
+    if (loading) return;
     if (!validatePaymentDetails()) return;
-    const newPaymentDetail: PaymentDetail = {
-      type: paymentType,
-      currency: paymentCurrency as PaymentDetail["currency"],
+    if (!user?._id) {
+      dispatch({ type: "SET_PAYMENT_ERROR", payload: "User ID is not available" });
+      return;
+    }
+
+    const payload: PaymentDetailPayload = {
+      userId: user._id,
+      type: state.paymentType,
+      currency: state.paymentCurrency as "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt",
       accountDetails:
-        paymentType === "fiat"
-          ? { bankName, accountNumber, accountName }
-          : { address: cryptoAddress },
+        state.paymentType === "fiat"
+          ? {
+              bankName: state.bankName,
+              accountNumber: state.accountNumber,
+              accountName: state.accountName,
+              address: "",
+            }
+          : {
+              address: state.cryptoAddress,
+              network: state.network === "" ? undefined : state.network,
+            },
     };
-    console.log("New Payment Detail:", newPaymentDetail);
-    handlePaymentModalClose();
+
+    try {
+      const response = await callApi({
+        url: ENDPOINTS.addPaymentDetails,
+        method: "POST",
+        body: payload,
+      });
+      if (response.success && response.paymentDetail) {
+        reduxDispatch(addPaymentDetail(response.paymentDetail));
+        handlePaymentModalClose();
+      } else {
+        dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to add payment details" });
+      }
+    } catch (err: unknown) {
+      const errorMessage = apiError?.message || "Failed to add payment details";
+      dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
+    }
   };
 
-  const handleKycSubmit = () => {
+  const handleKycSubmit = (): void => {
     if (!validateKycDetails()) return;
     console.log("KYC Submission:", {
-      documentType: kycDocumentType,
-      documentFront,
-      documentBack,
-      addressProof,
+      documentType: state.kycDocumentType,
+      documentFront: state.documentFront,
+      documentBack: state.documentBack,
+      addressProof: state.addressProof,
     });
     handleKycModalClose();
   };
 
-  const handleTwoFASubmit = () => {
+  const handleTwoFASubmit = (): void => {
     if (!validateTwoFASecret()) return;
-    console.log("2FA Secret:", twoFASecret);
+    console.log("2FA Secret:", state.twoFASecret);
     handleTwoFAModalClose();
   };
 
-  const handleRecoveryPasswordSubmit = () => {
-    if (!validateRecoveryPassword()) return;
-    console.log("Recovery Password:", recoveryPassword);
-    handleRecoveryPasswordModalClose();
+  const handleRecoveryEmailSubmit = (): void => {
+    if (!validateRecoveryEmail()) return;
+    console.log("Recovery Email:", state.recoveryEmail);
+    handleRecoveryEmailModalClose();
   };
 
   return (
     <Card sx={{ padding: 3, display: "flex", flexWrap: "wrap", gap: 4 }}>
       {/* First Row: Payment Details and Two-Factor Authentication */}
       {/* Payment Details */}
-      <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}>
+      <Box
+        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+      >
         <Typography variant="h6">Payment Details</Typography>
         {user && user.paymentDetails && user.paymentDetails.length > 0 ? (
           user.paymentDetails.map((detail, index) => (
@@ -193,9 +398,14 @@ const Account: FC<AccountProps> = ({ user }) => {
                   </Typography>
                 </>
               ) : detail.type === "crypto" && detail.accountDetails ? (
-                <Typography variant="body2">
-                  <strong>Address:</strong> {detail.accountDetails.address || "N/A"}
-                </Typography>
+                <>
+                  <Typography variant="body2">
+                    <strong>Address:</strong> {detail.accountDetails.address || "N/A"}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Network:</strong> {detail.accountDetails.network || "N/A"}
+                  </Typography>
+                </>
               ) : (
                 <Typography variant="body2">
                   <strong>Details:</strong> N/A
@@ -233,7 +443,9 @@ const Account: FC<AccountProps> = ({ user }) => {
       </Box>
 
       {/* Two-Factor Authentication */}
-      <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}>
+      <Box
+        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+      >
         <Typography variant="h6">Two-Factor Authentication</Typography>
         <Typography variant="body2">
           <strong>Status:</strong> {user && user.twoFA && user.twoFA.enabled ? "Enabled" : "Disabled"}
@@ -249,14 +461,17 @@ const Account: FC<AccountProps> = ({ user }) => {
         </Button>
       </Box>
 
-      {/* Second Row: KYC Details and Recovery Password */}
+      {/* Second Row: KYC Details and Recovery Email */}
       {/* KYC Details */}
-      <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}>
+      <Box
+        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+      >
         <Typography variant="h6">KYC Details</Typography>
         {user && user.kyc && user.kyc.status ? (
           <Box sx={{ p: 2, border: "1px solid", borderColor: "grey.200", borderRadius: 1 }}>
             <Typography variant="body2">
-              <strong>Status:</strong> {user.kyc.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : "N/A"}
+              <strong>Status:</strong>{" "}
+              {user.kyc.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : "N/A"}
             </Typography>
             <Typography variant="body2">
               <strong>Document Type:</strong> {user.kyc.documentType || "N/A"}
@@ -304,27 +519,29 @@ const Account: FC<AccountProps> = ({ user }) => {
         )}
       </Box>
 
-      {/* Recovery Password */}
-      <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}>
-        <Typography variant="h6">Recovery Password</Typography>
+      {/* Recovery Email */}
+      <Box
+        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+      >
+        <Typography variant="h6">Recovery Email</Typography>
         <Typography variant="body2" color="text.secondary">
-          No recovery password set.
+          No recovery email set.
         </Typography>
         <Button
           variant="contained"
           color="primary"
-          onClick={handleRecoveryPasswordModalOpen}
+          onClick={handleRecoveryEmailModalOpen}
           sx={{ alignSelf: "flex-start" }}
-          aria-label="Add recovery password"
+          aria-label="Add recovery email"
         >
-          Add Recovery Password
+          Add Recovery Email
         </Button>
       </Box>
 
       {/* Modals */}
       {/* Payment Details Modal */}
       <CustomModal
-        open={isPaymentModalOpen}
+        open={state.isPaymentModalOpen}
         title="Add Payment Details"
         onCancel={handlePaymentModalClose}
         onConfirm={handlePaymentSubmit}
@@ -334,9 +551,9 @@ const Account: FC<AccountProps> = ({ user }) => {
             <InputLabel id="payment-type-label">Payment Type</InputLabel>
             <Select
               labelId="payment-type-label"
-              value={paymentType}
+              value={state.paymentType}
               label="Payment Type"
-              onChange={(e) => setPaymentType(e.target.value as "fiat" | "crypto")}
+              onChange={(e) => dispatch({ type: "SET_PAYMENT_TYPE", payload: e.target.value as "fiat" | "crypto" })}
               aria-label="Select payment type"
             >
               <MenuItem value="fiat">Fiat</MenuItem>
@@ -347,12 +564,17 @@ const Account: FC<AccountProps> = ({ user }) => {
             <InputLabel id="currency-label">Currency</InputLabel>
             <Select
               labelId="currency-label"
-              value={paymentCurrency}
+              value={state.paymentCurrency}
               label="Currency"
-              onChange={(e) => setPaymentCurrency(e.target.value)}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_PAYMENT_CURRENCY",
+                  payload: e.target.value as "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "",
+                })
+              }
               aria-label="Select currency"
             >
-              {paymentType === "fiat"
+              {state.paymentType === "fiat"
                 ? ["usd", "cad", "eur", "gbp"].map((curr) => (
                     <MenuItem key={curr} value={curr}>
                       {curr.toUpperCase()}
@@ -365,46 +587,75 @@ const Account: FC<AccountProps> = ({ user }) => {
                   ))}
             </Select>
           </FormControl>
-          {paymentType === "fiat" ? (
+          {state.paymentType === "fiat" ? (
             <>
               <TextField
                 fullWidth
                 label="Bank Name"
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
+                value={state.bankName}
+                onChange={(e) => dispatch({ type: "SET_BANK_NAME", payload: e.target.value })}
                 sx={{ mb: 2 }}
                 aria-label="Bank name"
               />
               <TextField
                 fullWidth
                 label="Account Number"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
+                value={state.accountNumber}
+                onChange={(e) => dispatch({ type: "SET_ACCOUNT_NUMBER", payload: e.target.value })}
                 sx={{ mb: 2 }}
                 aria-label="Account number"
               />
               <TextField
                 fullWidth
                 label="Account Name"
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
+                value={state.accountName}
+                onChange={(e) => dispatch({ type: "SET_ACCOUNT_NAME", payload: e.target.value })}
                 sx={{ mb: 2 }}
                 aria-label="Account name"
               />
             </>
           ) : (
-            <TextField
-              fullWidth
-              label="Crypto Address"
-              value={cryptoAddress}
-              onChange={(e) => setCryptoAddress(e.target.value)}
-              sx={{ mb: 2 }}
-              aria-label="Crypto address"
-            />
+            <>
+              <TextField
+                fullWidth
+                label="Crypto Address"
+                value={state.cryptoAddress}
+                onChange={(e) => dispatch({ type: "SET_CRYPTO_ADDRESS", payload: e.target.value })}
+                sx={{ mb: 2 }}
+                aria-label="Crypto address"
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="network-label">Network (Optional)</InputLabel>
+                <Select
+                  labelId="network-label"
+                  value={state.network}
+                  label="Network (Optional)"
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_NETWORK",
+                      payload: e.target.value as "erc20" | "trc20" | "bep20" | "polygon" | "solana" | "",
+                    })
+                  }
+                  aria-label="Select network"
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {["erc20", "trc20", "bep20", "polygon", "solana"].map((net) => (
+                    <MenuItem key={net} value={net}>
+                      {net.toUpperCase()}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
           )}
-          {paymentError && (
+          {(state.paymentError || apiError) && (
             <Typography variant="caption" color="error">
-              {paymentError}
+              {state.paymentError || apiError?.message}
+            </Typography>
+          )}
+          {loading && (
+            <Typography variant="caption" color="text.secondary">
+              Submitting...
             </Typography>
           )}
         </Box>
@@ -412,7 +663,7 @@ const Account: FC<AccountProps> = ({ user }) => {
 
       {/* KYC Details Modal */}
       <CustomModal
-        open={isKycModalOpen}
+        open={state.isKycModalOpen}
         title="Add KYC Details"
         onCancel={handleKycModalClose}
         onConfirm={handleKycSubmit}
@@ -422,43 +673,49 @@ const Account: FC<AccountProps> = ({ user }) => {
             <InputLabel id="document-type-label">Document Type</InputLabel>
             <Select
               labelId="document-type-label"
-              value={kycDocumentType}
+              value={state.kycDocumentType}
               label="Document Type"
-              onChange={(e) => setKycDocumentType(e.target.value)}
+              onChange={(e) => dispatch({ type: "SET_KYC_DOCUMENT_TYPE", payload: e.target.value })}
               aria-label="Select document type"
             >
               <MenuItem value="driver_license">Driver's License</MenuItem>
               <MenuItem value="passport">Passport</MenuItem>
-              <MenuItem value="id_card">National ID Card</MenuItem>
+              <MenuItem value="national_id">National ID Card</MenuItem> {/* Fixed to match schema */}
             </Select>
           </FormControl>
-          <Typography variant="body2" mb={1}>Document Front</Typography>
+          <Typography variant="body2" mb={1}>
+            Document Front
+          </Typography>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setDocumentFront(e.target.files?.[0] || null)}
+            onChange={(e) => dispatch({ type: "SET_DOCUMENT_FRONT", payload: e.target.files?.[0] || null })}
             style={{ marginBottom: 16 }}
             aria-label="Upload document front"
           />
-          <Typography variant="body2" mb={1}>Document Back</Typography>
+          <Typography variant="body2" mb={1}>
+            Document Back
+          </Typography>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setDocumentBack(e.target.files?.[0] || null)}
+            onChange={(e) => dispatch({ type: "SET_DOCUMENT_BACK", payload: e.target.files?.[0] || null })}
             style={{ marginBottom: 16 }}
             aria-label="Upload document back"
           />
-          <Typography variant="body2" mb={1}>Address Proof</Typography>
+          <Typography variant="body2" mb={1}>
+            Address Proof
+          </Typography>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setAddressProof(e.target.files?.[0] || null)}
+            onChange={(e) => dispatch({ type: "SET_ADDRESS_PROOF", payload: e.target.files?.[0] || null })}
             style={{ marginBottom: 16 }}
             aria-label="Upload address proof"
           />
-          {kycError && (
+          {state.kycError && (
             <Typography variant="caption" color="error">
-              {kycError}
+              {state.kycError}
             </Typography>
           )}
         </Box>
@@ -466,7 +723,7 @@ const Account: FC<AccountProps> = ({ user }) => {
 
       {/* 2FA Modal */}
       <CustomModal
-        open={isTwoFAModalOpen}
+        open={state.isTwoFAModalOpen}
         title={user && user.twoFA && user.twoFA.enabled ? "Disable 2FA" : "Enable 2FA"}
         onCancel={handleTwoFAModalClose}
         onConfirm={handleTwoFASubmit}
@@ -475,39 +732,39 @@ const Account: FC<AccountProps> = ({ user }) => {
           <TextField
             fullWidth
             label="2FA Secret"
-            value={twoFASecret}
-            onChange={(e) => setTwoFASecret(e.target.value)}
+            value={state.twoFASecret}
+            onChange={(e) => dispatch({ type: "SET_TWO_FA_SECRET", payload: e.target.value })}
             sx={{ mb: 2 }}
             aria-label="2FA secret"
           />
-          {twoFAError && (
+          {state.twoFAError && (
             <Typography variant="caption" color="error">
-              {twoFAError}
+              {state.twoFAError}
             </Typography>
           )}
         </Box>
       </CustomModal>
 
-      {/* Recovery Password Modal */}
+      {/* Recovery Email Modal */}
       <CustomModal
-        open={isRecoveryPasswordModalOpen}
-        title="Add Recovery Password"
-        onCancel={handleRecoveryPasswordModalClose}
-        onConfirm={handleRecoveryPasswordSubmit}
+        open={state.isRecoveryEmailModalOpen}
+        title="Add Recovery Email"
+        onCancel={handleRecoveryEmailModalClose}
+        onConfirm={handleRecoveryEmailSubmit}
       >
         <Box>
           <TextField
             fullWidth
-            label="Recovery Password"
-            type="password"
-            value={recoveryPassword}
-            onChange={(e) => setRecoveryPassword(e.target.value)}
+            label="Recovery Email"
+            type="email"
+            value={state.recoveryEmail}
+            onChange={(e) => dispatch({ type: "SET_RECOVERY_EMAIL", payload: e.target.value })}
             sx={{ mb: 2 }}
-            aria-label="Recovery password"
+            aria-label="Recovery email"
           />
-          {recoveryPasswordError && (
+          {state.recoveryEmailError && (
             <Typography variant="caption" color="error">
-              {recoveryPasswordError}
+              {state.recoveryEmailError}
             </Typography>
           )}
         </Box>

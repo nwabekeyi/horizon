@@ -2,8 +2,13 @@ import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
+import {FC} from 'react';
 
-const Tasks = () => {
+interface CompanyInvestedInProps {
+  companiesInvested: number
+}
+
+const CompanyInvestedIn : FC<CompanyInvestedInProps> = ({companiesInvested}) => {
   return (
     <Stack component={Paper} p={2.5} alignItems="center" spacing={2.25} height={100}>
       <Stack
@@ -20,14 +25,14 @@ const Tasks = () => {
       </Stack>
       <div>
         <Typography variant="body2" color="text.disabled" noWrap>
-          New Tasks
+          Invested Companies
         </Typography>
         <Typography mt={0.25} variant="h3">
-          154
+          {companiesInvested}
         </Typography>
       </div>
     </Stack>
   );
 };
 
-export default Tasks;
+export default CompanyInvestedIn;

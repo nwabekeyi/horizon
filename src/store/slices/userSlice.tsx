@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ENDPOINTS } from 'utils/endpoints';
-import { User } from 'utils/interfaces';
+import { User, PaymentDetail } from 'utils/interfaces';
 
 interface UserState {
   user: User | null;
@@ -56,6 +56,11 @@ const userSlice = createSlice({
       state.token = null;
       sessionStorage.removeItem('token');
     },
+    addPaymentDetail: (state, action: PayloadAction<PaymentDetail>) => {
+      if (state.user) {
+        state.user.paymentDetails = [...(state.user.paymentDetails || []), action.payload];
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -79,6 +84,6 @@ const userSlice = createSlice({
   },
 });
 
-export const { logout } = userSlice.actions;
+export const { logout, addPaymentDetail } = userSlice.actions;
 export default userSlice.reducer;
 export { loginUser };

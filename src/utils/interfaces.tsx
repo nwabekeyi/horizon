@@ -1,11 +1,23 @@
+// utils/interfaces.ts
+export interface Investment {
+  _id: string;
+  amountInvested: number;
+  companyName: string;
+  currencyType: 'fiat' | 'crypto';
+  investmentDate: string; // ISO string, as provided
+  roi: number;
+  transactionId: string;
+}
+
 export interface PaymentDetail {
   type: 'fiat' | 'crypto';
   currency: 'usd' | 'cad' | 'eur' | 'gbp' | 'btc' | 'eth' | 'usdt';
   accountDetails: {
-    bankName?: string; // Required if fiat
+    bankName?: string;
     accountNumber?: string;
     accountName?: string;
-    address?: string; // Required if crypto
+    address?: string;
+    network?: 'erc20' | 'trc20' | 'bep20' | 'polygon' | 'solana';
   };
 }
 
@@ -14,13 +26,12 @@ interface TwoFA {
   secret: string;
 }
 
-// KYC Interface
 interface KYC {
-  status: 'pending' | 'approved' | 'rejected'; // Status can be one of these values
-  documentType: 'passport' | 'driver_license' | 'national_id'; // Type of document
-  documentFront?: string; // URL or path to the front of the document
-  documentBack?: string; // URL or path to the back of the document
-  addressProof?: string; // URL or path to the address proof
+  status: 'pending' | 'approved' | 'rejected';
+  documentType: 'passport' | 'driver_license' | 'national_id';
+  documentFront?: string;
+  documentBack?: string;
+  addressProof?: string;
 }
 
 export interface UserInfo {
@@ -47,8 +58,24 @@ export interface UserInfo {
   totalInvestment: number;
   paymentDetails: PaymentDetail[];
   twoFA: TwoFA;
-  kyc?: KYC; // Optional KYC details for the user
+  kyc?: KYC;
+  investments?: Investment[]; // Added investments array
 }
 
-// Allow User to be null
 export type User = UserInfo | null;
+
+export interface Transaction {
+  _id: string;
+  companyName: string;
+  transactionId: string;
+  userId: string;
+  status: 'completed' | 'pending' | 'failed';
+  amount: number;
+  currencyType: 'fiat' | 'crypto';
+  cryptoCurrency?: 'usdt' | 'btc' | 'eth';
+  transactionDetails?: string;
+  proofUrl: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  __v: number;
+}

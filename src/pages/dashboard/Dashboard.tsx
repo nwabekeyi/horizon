@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { jwtDecode } from 'jwt-decode';
 import Grid from '@mui/material/Grid';
 import { ThemeProvider } from '@mui/material/styles';
@@ -17,6 +18,7 @@ import TeamMembers from 'components/sections/dashboard/team-members';
 import DailyTraffic from 'components/sections/dashboard/daily-traffic';
 import TrendingNFTs from 'components/sections/dashboard/trending-nfts';
 import BusinessDesign from 'components/sections/dashboard/business-design';
+import { RootState } from 'store'; // Adjust path to your store's RootState type
 
 interface DecodedToken {
   exp: number;
@@ -25,6 +27,9 @@ interface DecodedToken {
 
 const Dashboard = (): JSX.Element => {
   const navigate = useNavigate();
+
+  // Access user from Redux store
+  const user = useSelector((state: RootState) => state.user.user);
 
   useEffect(() => {
     const token = sessionStorage.getItem('token');
@@ -49,10 +54,10 @@ const Dashboard = (): JSX.Element => {
   }, [navigate]);
 
   return (
-    <ThemeProvider theme={theme} >
+    <ThemeProvider theme={theme}>
       <Grid container spacing={2.5}>
         <Grid item xs={12}>
-          <Analytics />
+          <Analytics user={user} />
         </Grid>
         <Grid item xs={12} md={6}>
           <TotalSpent />

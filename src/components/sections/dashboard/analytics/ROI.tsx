@@ -1,9 +1,14 @@
+import { FC } from 'react';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
 
-const Earnings = () => {
+interface RoiProps {
+  ROI: number;
+}
+
+const Roi: FC<RoiProps> = ({ ROI }) => {
   return (
     <Stack component={Paper} p={2.5} alignItems="center" spacing={2.25} height={100}>
       <Stack
@@ -14,18 +19,18 @@ const Earnings = () => {
         bgcolor="info.main"
         borderRadius="50%"
       >
-        <IconifyIcon icon="ic:round-bar-chart" fontSize="h2.fontSize" color="primary.main" />
+        <IconifyIcon icon="mdi:trending-up" fontSize="h2.fontSize" color="primary.main" />
       </Stack>
       <div>
         <Typography variant="body2" color="text.disabled">
-          Earnings
+          ROI
         </Typography>
         <Typography mt={0.25} variant="h3">
-          $350.4
+          ${ROI.toFixed(2)}
         </Typography>
       </div>
     </Stack>
   );
 };
 
-export default Earnings;
+export default Roi;

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { jwtDecode } from 'jwt-decode';
 import Grid from '@mui/material/Grid';
 import { ThemeProvider } from '@mui/material/styles';
@@ -8,17 +7,14 @@ import { theme } from '../../theme/theme';
 import Calendar from 'components/sections/dashboard/calendar';
 import Analytics from 'components/sections/dashboard/analytics';
 import TotalSpent from 'components/sections/dashboard/total-spent';
-import CardSecurity from 'components/sections/dashboard/card-security';
 import ComplexTable from 'components/sections/dashboard/complex-table';
 import PiChart from 'components/sections/dashboard/your-pi-chart';
-import History from 'components/sections/dashboard/history';
+import InvestmentHistory from 'components/sections/dashboard/InvestmentHistory';
 import Revenue from 'components/sections/dashboard/revenue';
-import Tasks from 'components/sections/dashboard/tasks';
 import TeamMembers from 'components/sections/dashboard/team-members';
-import DailyTraffic from 'components/sections/dashboard/daily-traffic';
 import TrendingNFTs from 'components/sections/dashboard/trending-nfts';
-import BusinessDesign from 'components/sections/dashboard/business-design';
-import { RootState } from 'store'; // Adjust path to your store's RootState type
+import Referral from 'components/sections/dashboard/referral';
+import { useUserDetails } from 'hooks/useUserdetails';
 
 interface DecodedToken {
   exp: number;
@@ -29,10 +25,10 @@ const Dashboard = (): JSX.Element => {
   const navigate = useNavigate();
 
   // Access user from Redux store
-  const user = useSelector((state: RootState) => state.user.user);
+  const user = useUserDetails();
 
   useEffect(() => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
 
     if (!token) {
       navigate('/authentication/sign-in');
@@ -44,11 +40,11 @@ const Dashboard = (): JSX.Element => {
       const now = Date.now() / 1000;
 
       if (decoded.exp < now) {
-        sessionStorage.removeItem('token');
+        localStorage.removeItem('token');
         navigate('/authentication/sign-in');
       }
     } catch (error) {
-      sessionStorage.removeItem('token');
+      localStorage.removeItem('token');
       navigate('/authentication/sign-in');
     }
   }, [navigate]);
@@ -63,16 +59,7 @@ const Dashboard = (): JSX.Element => {
           <TotalSpent />
         </Grid>
         <Grid item xs={12} md={6}>
-          <Revenue />
-        </Grid>
-        <Grid item xs={12} md={6} lg={4} xl={3}>
-          <CardSecurity />
-        </Grid>
-        <Grid item xs={12} md={6} lg={4} xl={3}>
-          <Tasks />
-        </Grid>
-        <Grid item xs={12} md={6} lg={4} xl={3}>
-          <DailyTraffic />
+          <Revenue user={user} />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
           <PiChart />
@@ -81,13 +68,13 @@ const Dashboard = (): JSX.Element => {
           <TrendingNFTs />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <History />
+          <InvestmentHistory user={user}/>
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
           <Calendar />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <BusinessDesign />
+          <Referral />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
           <TeamMembers />

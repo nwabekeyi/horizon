@@ -5,11 +5,11 @@ import Roi from './ROI';
 import Spend from './Spend';
 import CompanyInvestedIn from './CompanyInvestedIn';
 import Balance from './balance';
-import Projects from './Projects';
 import { User } from 'utils/interfaces'; // Import User interface
 import TotalInvestments from './TotalInvestments';
 import {FC} from 'react'
-import useAnalytics from './hook/useAnalytics';
+import useAnalytics from '../hook/useAnalytics';
+import PendingInvestments from './PendingInvestments';
 
 interface AnalyticsProps {
   user: User | null;
@@ -21,7 +21,8 @@ const Analytics: FC<AnalyticsProps> = ({ user }) => {
     spentThisMonth,
     ROI,
     accountBalance,
-    investedCompanies
+    investedCompanies,
+    pendingTransactions
   }= useAnalytics(user);
   console.log(investedCompanies)
   return (
@@ -48,7 +49,7 @@ const Analytics: FC<AnalyticsProps> = ({ user }) => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} xl={2}>
-          <Projects />
+          <PendingInvestments pendingInvestments={pendingTransactions.length} />
         </Grid>
       </Grid>
     </ThemeProvider>

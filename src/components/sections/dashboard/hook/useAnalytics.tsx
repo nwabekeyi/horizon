@@ -31,6 +31,7 @@ interface AnalyticsState {
   ROI: number;
   accountBalance: number;
   investedCompanies: string[];
+  pendingTransactions: Transaction[];
 }
 
 type Action =
@@ -40,6 +41,7 @@ type Action =
   | { type: 'SET_ROI'; payload: number }
   | { type: 'SET_ACCOUNT_BALANCE'; payload: number }
   | { type: 'SET_INVESTED_COMPANIES'; payload: string[] }
+  | { type: 'SET_PENDING_TRANSACTIONS'; payload: Transaction[] }
   | { type: 'RESET' };
 
 // Reducer
@@ -57,6 +59,8 @@ const analyticsReducer = (state: AnalyticsState, action: Action): AnalyticsState
       return { ...state, accountBalance: action.payload };
     case 'SET_INVESTED_COMPANIES':
       return { ...state, investedCompanies: action.payload };
+    case 'SET_PENDING_TRANSACTIONS':
+      return { ...state, pendingTransactions: action.payload };
     case 'RESET':
       return {
         totalInvestment: 0,
@@ -65,6 +69,7 @@ const analyticsReducer = (state: AnalyticsState, action: Action): AnalyticsState
         ROI: 0,
         accountBalance: 0,
         investedCompanies: [],
+        pendingTransactions: [],
       };
     default:
       return state;
@@ -80,8 +85,8 @@ const useAnalytics = (user: User | null): AnalyticsState => {
     ROI: 0,
     accountBalance: 0,
     investedCompanies: [],
+    pendingTransactions: [],
   });
-  console.log(user)
 
   const { callApi, loading, error } = useApiRequest<ApiResponse, never>();
 
@@ -129,6 +134,11 @@ const useAnalytics = (user: User | null): AnalyticsState => {
 
         dispatch({ type: 'SET_TRANSACTIONS', payload: transactions });
 
+        // Filter pending transactions
+        const pendingTransactions = transactions.filter((tx) => tx.status === 'pending');
+        console.log('Pending transactions:', pendingTransactions);
+        dispatch({ type: 'SET_PENDING_TRANSACTIONS', payload: pendingTransactions });
+
         // Calculate spent this month
         const now = new Date();
         const currentYear = now.getFullYear();
@@ -151,6 +161,7 @@ const useAnalytics = (user: User | null): AnalyticsState => {
         console.error('Failed to fetch transactions:', err);
         dispatch({ type: 'SET_TRANSACTIONS', payload: [] });
         dispatch({ type: 'SET_SPENT_THIS_MONTH', payload: 0 });
+        dispatch({ type: 'SET_PENDING_TRANSACTIONS', payload: [] });
       }
     };
 

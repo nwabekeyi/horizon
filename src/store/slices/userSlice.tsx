@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ENDPOINTS } from 'utils/endpoints';
 import { User, PaymentDetail } from 'utils/interfaces';
 
-interface UserState {
+export interface UserState {  // Exported UserState type
   user: User | null;
   isLoggedIn: boolean;
   token: string | null;
@@ -13,7 +13,7 @@ interface UserState {
 const initialState: UserState = {
   user: null,
   isLoggedIn: false,
-  token: sessionStorage.getItem('token'),
+  token: localStorage.getItem('token'),
   status: 'idle',
   error: null,
 };
@@ -34,7 +34,7 @@ const loginUser = createAsyncThunk(
         return thunkAPI.rejectWithValue(data.message);
       }
 
-      sessionStorage.setItem('token', data.token);
+      localStorage.setItem('token', data.token);
 
       return {
         user: data.user,
@@ -54,7 +54,7 @@ const userSlice = createSlice({
       state.user = null;
       state.isLoggedIn = false;
       state.token = null;
-      sessionStorage.removeItem('token');
+      localStorage.removeItem('token');
     },
     addPaymentDetail: (state, action: PayloadAction<PaymentDetail>) => {
       if (state.user) {

@@ -12,7 +12,7 @@ import { Avatar1, Avatar2, Avatar3, Avatar4, Avatar5 } from 'data/images';
 
 const avatars = [Avatar1, Avatar2, Avatar3, Avatar4, Avatar5];
 
-const BusinessDesign = () => {
+const Referral = () => {
   return (
     <Stack
       component={Paper}
@@ -29,24 +29,24 @@ const BusinessDesign = () => {
           justifyContent="center"
           height={52}
           width={52}
-          bgcolor="error.light"
+          bgcolor="info.light"
           borderRadius={3}
         >
-          <IconifyIcon icon="mdi:fire" color="error.main" fontSize="h2.fontSize" />
+          <IconifyIcon icon="mdi:gift-outline" color="info.main" fontSize="h2.fontSize" />
         </Stack>
 
         <Box mt={-0.5}>
           <Typography variant="caption" color="text.disabled">
-            Business Design
+            Referral Program
           </Typography>
           <Typography mt={-0.35} variant="body1" fontWeight={700} noWrap>
-            New lession is available
+            Invite friends & earn rewards
           </Typography>
         </Box>
       </Stack>
 
       <Typography px={3.5} variant="h5" lineHeight={1.65}>
-        What do you need to know to create better products?
+        Share your referral link and earn bonuses when friends sign up.
       </Typography>
 
       <Stack
@@ -59,20 +59,16 @@ const BusinessDesign = () => {
       >
         <Stack alignItems="center" spacing={3.5}>
           <Stack alignItems="center" justifyContent="center" borderRadius={2.5} spacing={0.75}>
-            <IconifyIcon icon="ic:sharp-timer" color="success.dark" fontSize="h4.fontSize" />
+            <IconifyIcon icon="mdi:currency-usd" color="success.dark" fontSize="h4.fontSize" />
             <Typography variant="body2" fontWeight={700}>
-              85 mins
+              Earn up to $50
             </Typography>
           </Stack>
 
           <Stack alignItems="center" justifyContent="center" borderRadius={2.5} spacing={0.75}>
-            <IconifyIcon
-              icon="ic:outline-slow-motion-video"
-              color="error.main"
-              fontSize="h4.fontSize"
-            />
+            <IconifyIcon icon="mdi:account-plus-outline" color="primary.main" fontSize="h4.fontSize" />
             <Typography variant="body2" fontWeight={700}>
-              Video format
+              Per successful referral
             </Typography>
           </Stack>
         </Stack>
@@ -95,7 +91,7 @@ const BusinessDesign = () => {
           </Stack>
 
           <Button variant="contained" color="primary">
-            Get Started
+            Get your referral link
           </Button>
         </Stack>
       </Stack>
@@ -103,4 +99,4 @@ const BusinessDesign = () => {
   );
 };
 
-export default BusinessDesign;
+export default Referral;

@@ -2,8 +2,13 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
+import {FC} from 'react'
 
-const Projects = () => {
+interface PendingInvestmentProps {
+  pendingInvestments: number;
+}
+
+const PendingInvestments: FC<PendingInvestmentProps> = ({pendingInvestments}) => {
   return (
     <Stack component={Paper} p={2.5} alignItems="center" spacing={2.25} height={100}>
       <Stack
@@ -18,14 +23,14 @@ const Projects = () => {
       </Stack>
       <div>
         <Typography variant="body2" color="text.disabled" noWrap>
-          Total Projects
+          Pending Transactions
         </Typography>
         <Typography mt={0.25} variant="h3">
-          2935
+          {pendingInvestments}
         </Typography>
       </div>
     </Stack>
   );
 };
 
-export default Projects;
+export default PendingInvestments;

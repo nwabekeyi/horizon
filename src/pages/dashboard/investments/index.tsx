@@ -1,6 +1,5 @@
 // src/pages/dashboard/investments/index.tsx
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
 import {
   Box,
   Typography,
@@ -11,12 +10,12 @@ import {
   Alert,
   SelectChangeEvent,
 } from '@mui/material';
-import { RootState } from '../../../store';
 import { useInvestmentData } from './hooks/useInvestmentData';
 import { MultiStepFlow } from '../../../components/common/multiStepFlow';
 import { useCompressedDropzone } from '../../../hooks/useDropzoneConfig';
 import { useInvestmentSteps } from './hooks/useInvestmentSteps';
 import CustomModal from 'components/base/modal';
+import { useUserDetails } from 'hooks/useUserdetails';
 
 // Mock wire transfer details
 const wireTransferDetails: {
@@ -37,7 +36,8 @@ const cryptoAddresses: { BTC: string; ETH: string; USDT: string } = {
 };
 
 const Investment = () => {
-  const userId = useSelector((state: RootState) => state.user.user?._id || '');
+  const user = useUserDetails();
+  const userId = user && user._id;
   console.log(userId)
   const [isInvestmentFlowOpen, setIsInvestmentFlowOpen] = useState(false);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);

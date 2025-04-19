@@ -1,9 +1,14 @@
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
+import {FC} from 'react';
 
-const Projects = () => {
+interface CompanyInvestedInProps {
+  companiesInvested: number
+}
+
+const CompanyInvestedIn : FC<CompanyInvestedInProps> = ({companiesInvested}) => {
   return (
     <Stack component={Paper} p={2.5} alignItems="center" spacing={2.25} height={100}>
       <Stack
@@ -11,21 +16,23 @@ const Projects = () => {
         justifyContent="center"
         height={56}
         width={56}
-        bgcolor="info.main"
         borderRadius="50%"
+        sx={(theme) => ({
+          background: `linear-gradient(90deg, ${theme.palette.gradients.secondary.main} 0%, ${theme.palette.gradients.secondary.state} 100%)`,
+        })}
       >
-        <IconifyIcon icon="ic:baseline-file-copy" fontSize="h3.fontSize" color="primary.main" />
+        <IconifyIcon icon="ic:baseline-add-task" fontSize="h3.fontSize" color="info.lighter" />
       </Stack>
       <div>
         <Typography variant="body2" color="text.disabled" noWrap>
-          Total Projects
+          Invested Companies
         </Typography>
         <Typography mt={0.25} variant="h3">
-          2935
+          {companiesInvested}
         </Typography>
       </div>
     </Stack>
   );
 };
 
-export default Projects;
+export default CompanyInvestedIn;

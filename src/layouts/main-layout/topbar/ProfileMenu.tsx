@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from 'store'; // Adjust path if needed
 import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
@@ -11,7 +9,7 @@ import Typography from '@mui/material/Typography';
 import ButtonBase from '@mui/material/ButtonBase';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import IconifyIcon from 'components/base/IconifyIcon';
-
+import { useUserDetails } from 'hooks/useUserdetails';
 import {
   ViewProfileModal,
   AccountSettingsModal,
@@ -36,7 +34,7 @@ const ProfileMenu = () => {
   // Modal state
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  const user = useSelector((state: RootState) => state.user.user);
+  const user = useUserDetails();
   const { firstName, lastName, email, profilePicture } = user || {};
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {

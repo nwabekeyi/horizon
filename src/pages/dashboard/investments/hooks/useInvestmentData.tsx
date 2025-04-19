@@ -82,7 +82,7 @@ interface ApiError {
   message?: string;
 }
 
-export const useInvestmentData = (userId: string, paymentProof: File | null) => {
+export const useInvestmentData = (userId: string | null, paymentProof: File | null) => {
   const [state, dispatch] = useReducer(investmentReducer, getInitialState());
   const [modalState, setModalState] = useState<{
     open: boolean;

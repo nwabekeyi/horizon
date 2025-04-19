@@ -2,8 +2,13 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
+import { FC } from 'react';
 
-const Spend = () => {
+interface Spent {
+  spent : number;
+}
+
+const Spend: FC<Spent> = ({spent}) => {
   return (
     <Stack component={Paper} p={2.5} alignItems="center" spacing={2.25} height={100}>
       <Stack
@@ -21,7 +26,7 @@ const Spend = () => {
           Spend this month
         </Typography>
         <Typography mt={0.25} variant="h3">
-          $642.39
+          ${spent.toFixed(2)}
         </Typography>
       </div>
     </Stack>

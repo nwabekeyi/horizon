@@ -7,14 +7,14 @@ import { theme } from '../../theme/theme';
 import Calendar from 'components/sections/dashboard/calendar';
 import Analytics from 'components/sections/dashboard/analytics';
 import TotalSpent from 'components/sections/dashboard/total-spent';
-import ComplexTable from 'components/sections/dashboard/complex-table';
 import PiChart from 'components/sections/dashboard/your-pi-chart';
 import InvestmentHistory from 'components/sections/dashboard/InvestmentHistory';
 import Revenue from 'components/sections/dashboard/revenue';
-import TeamMembers from 'components/sections/dashboard/team-members';
-import TrendingNFTs from 'components/sections/dashboard/trending-nfts';
 import Referral from 'components/sections/dashboard/referral';
 import { useUserDetails } from 'hooks/useUserdetails';
+import TrendingCryptos from 'components/sections/dashboard/trendingCryptos';
+import PendingTransactions from 'components/sections/dashboard/pendingTransactions';
+import AllTransactions from 'components/sections/dashboard/complex-table';
 
 interface DecodedToken {
   exp: number;
@@ -56,16 +56,16 @@ const Dashboard = (): JSX.Element => {
           <Analytics user={user} />
         </Grid>
         <Grid item xs={12} md={6}>
-          <TotalSpent />
+          <TotalSpent user={user} />
         </Grid>
         <Grid item xs={12} md={6}>
           <Revenue user={user} />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <PiChart />
+          <PiChart user={user}/>
         </Grid>
         <Grid item xs={12} lg={8} xl={6}>
-          <TrendingNFTs />
+          <TrendingCryptos />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
           <InvestmentHistory user={user}/>
@@ -77,10 +77,10 @@ const Dashboard = (): JSX.Element => {
           <Referral />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <TeamMembers />
+          <PendingTransactions user={user} />
         </Grid>
         <Grid item xs={12} lg={8} xl={6}>
-          <ComplexTable />
+          <AllTransactions user={user} />
         </Grid>
       </Grid>
     </ThemeProvider>

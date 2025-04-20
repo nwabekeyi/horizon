@@ -13,11 +13,16 @@ interface Action {
   title: string;
 }
 
+interface CardMenuProps {
+  transactionId: string; // Pass transaction ID to handle actions
+  onAction: (action: string, transactionId: string) => void; // Callback for actions
+}
+
 const actions: Action[] = [
   {
     id: 1,
-    icon: 'ic:outline-account-circle',
-    title: 'Profile',
+    icon: 'ic:outline-visibility',
+    title: 'View Details',
   },
   {
     id: 2,
@@ -26,12 +31,12 @@ const actions: Action[] = [
   },
   {
     id: 3,
-    icon: 'ic:baseline-delete-outline',
-    title: 'Remove',
+    icon: 'ic:baseline-refresh',
+    title: 'Retry Transaction',
   },
 ];
 
-const CardMenu = () => {
+const CardMenu = ({ transactionId, onAction }: CardMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -43,7 +48,8 @@ const CardMenu = () => {
     setAnchorEl(null);
   };
 
-  const handleActionItemClick = () => {
+  const handleActionItemClick = (actionTitle: string) => {
+    onAction(actionTitle, transactionId); // Trigger the action callback
     handleActionMenuClose();
   };
 
@@ -52,7 +58,7 @@ const CardMenu = () => {
       <IconButton
         edge="start"
         color="inherit"
-        aria-label="card-menu"
+        aria-label="transaction-menu"
         onClick={handleActionButtonClick}
         sx={{ bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent' } }}
       >
@@ -60,10 +66,9 @@ const CardMenu = () => {
       </IconButton>
       <Menu
         anchorEl={anchorEl}
-        id="account-menu"
+        id="transaction-menu"
         open={open}
         onClose={handleActionMenuClose}
-        onClick={handleActionMenuClose}
         sx={{
           mt: 0.5,
           '& .MuiList-root': {
@@ -73,23 +78,19 @@ const CardMenu = () => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        {actions.map((actionItem) => {
-          return (
-            <MenuItem key={actionItem.id} onClick={handleActionItemClick}>
-              <ListItemIcon sx={{ mr: 1, fontSize: 'h5.fontSize' }}>
-                <IconifyIcon
-                  icon={actionItem.icon}
-                  color={actionItem.id === 3 ? 'error.main' : 'text.primary'}
-                />
-              </ListItemIcon>
-              <ListItemText>
-                <Typography color={actionItem.id === 3 ? 'error.main' : 'text.primary'}>
-                  {actionItem.title}
-                </Typography>
-              </ListItemText>
-            </MenuItem>
-          );
-        })}
+        {actions.map((actionItem) => (
+          <MenuItem
+            key={actionItem.id}
+            onClick={() => handleActionItemClick(actionItem.title)}
+          >
+            <ListItemIcon sx={{ mr: 1, fontSize: 'h5.fontSize' }}>
+              <IconifyIcon icon={actionItem.icon} color="text.primary" />
+            </ListItemIcon>
+            <ListItemText>
+              <Typography color="text.primary">{actionItem.title}</Typography>
+            </ListItemText>
+          </MenuItem>
+        ))}
       </Menu>
     </>
   );

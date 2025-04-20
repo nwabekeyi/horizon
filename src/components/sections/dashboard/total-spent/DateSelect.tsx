@@ -2,15 +2,20 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import customShadows from 'theme/shadows';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
-const DateSelect = () => {
+interface DateSelectProps {
+  onChange: (date: Dayjs | null) => void;
+}
+
+const DateSelect = ({ onChange }: DateSelectProps) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DatePicker
         views={['month', 'year']}
-        defaultValue={dayjs('Jan-2024')}
+        defaultValue={dayjs()} // Default to current date
         format="MMM YYYY"
+        onChange={onChange}
         sx={(theme) => ({
           boxShadow: 'none',
           '& .MuiInputBase-root': {

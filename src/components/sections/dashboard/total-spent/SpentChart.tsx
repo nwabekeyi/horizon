@@ -22,9 +22,9 @@ echarts.use([
 ]);
 
 interface SpentChartProps {
-  data?: {
-    line1: number[];
-    line2: number[];
+  data: {
+    months: string[];
+    amounts: number[];
   };
   sx?: SxProps;
 }
@@ -79,7 +79,7 @@ const SpentChart = ({ data, ...rest }: SpentChartProps) => {
       },
       xAxis: {
         type: 'category',
-        data: ['SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB'],
+        data: data.months, // Dynamic months
         axisTick: {
           show: false,
         },
@@ -100,8 +100,8 @@ const SpentChart = ({ data, ...rest }: SpentChartProps) => {
       },
       yAxis: {
         type: 'value',
-        min: 1,
-        minInterval: 10,
+        min: 0,
+        minInterval: 100,
         splitLine: {
           show: false,
         },
@@ -111,8 +111,8 @@ const SpentChart = ({ data, ...rest }: SpentChartProps) => {
       },
       series: [
         {
-          name: 'Line 1',
-          data: data?.line1,
+          name: 'Spending',
+          data: data.amounts, // Dynamic amounts
           type: 'line',
           smooth: true,
           showSymbol: false,
@@ -136,37 +136,6 @@ const SpentChart = ({ data, ...rest }: SpentChartProps) => {
               width: 4,
               shadowBlur: 25,
               shadowColor: theme.palette.primary.main,
-              shadowOffsetX: 0,
-              shadowOffsetY: 20,
-            },
-          },
-        },
-        {
-          name: 'Line 2',
-          data: data?.line2,
-          type: 'line',
-          smooth: true,
-          showSymbol: false,
-          itemStyle: {
-            color: theme.palette.secondary.main,
-          },
-          lineStyle: {
-            width: 4,
-            type: 'solid',
-            cap: 'round',
-            color: theme.palette.secondary.main,
-          },
-          emphasis: {
-            focus: 'series',
-            scale: 3,
-            itemStyle: {
-              borderWidth: 3,
-              borderColor: theme.palette.secondary.main,
-            },
-            lineStyle: {
-              width: 4,
-              shadowBlur: 25,
-              shadowColor: theme.palette.secondary.main,
               shadowOffsetX: 0,
               shadowOffsetY: 20,
             },

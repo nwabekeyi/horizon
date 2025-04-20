@@ -44,7 +44,6 @@ const NFTMarketplace = (): JSX.Element => {
           console.log('Component unmounted, skipping state update');
           return;
         }
-
         if (response.ok) {
           setData({ assets: data });
         } else {

@@ -9,6 +9,15 @@ export interface Investment {
   transactionId: string;
 }
 
+export interface Withdrawal {
+  _id: string;
+  amount: number;
+  createdAt: Date; // Explicitly string
+  status: 'pending' | 'failed' | 'successful';
+  bankAccount?: string; // Instead of companyName
+  type: 'withdrawal';
+}
+
 export interface PaymentDetail {
   type: 'fiat' | 'crypto';
   currency: 'usd' | 'cad' | 'eur' | 'gbp' | 'btc' | 'eth' | 'usdt';

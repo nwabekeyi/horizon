@@ -6,9 +6,14 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconifyIcon from 'components/base/IconifyIcon';
-import DataTable from './DataTable';
+import TransactionTable from './TransactionTable';
+import { User } from 'utils/interfaces';
 
-const ComplexTable = () => {
+interface AllTransactionsProps {
+  user: User | null;
+}
+
+const AllTransactions = ({ user }: AllTransactionsProps) => {
   const [searchText, setSearchText] = useState('');
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -24,13 +29,13 @@ const ComplexTable = () => {
         justifyContent="space-between"
       >
         <Typography variant="h4" textAlign={{ xs: 'center', sm: 'left' }}>
-          Complex Table
+          All Transactions
         </Typography>
 
         <TextField
           variant="filled"
           size="small"
-          placeholder="Search here"
+          placeholder="Search by ID or Company"
           value={searchText}
           onChange={handleInputChange}
           sx={{ mx: { xs: 'auto', sm: 'initial' }, width: 1, maxWidth: { xs: 300, sm: 220 } }}
@@ -45,10 +50,10 @@ const ComplexTable = () => {
       </Stack>
 
       <Box mt={{ xs: 1.25, sm: 1 }} height={313}>
-        <DataTable searchText={searchText} />
+        <TransactionTable searchText={searchText} user={user} />
       </Box>
     </Box>
   );
 };
 
-export default ComplexTable;
+export default AllTransactions;

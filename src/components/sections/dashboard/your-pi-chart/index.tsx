@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { useTheme } from '@mui/material';
+import React, { useState, useRef, useMemo } from 'react';
+import { useTheme } from '@mui/material'; // Corrected import
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
@@ -10,16 +10,71 @@ import ButtonBase from '@mui/material/ButtonBase';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import EChartsReactCore from 'echarts-for-react/lib/core';
-import { PiChartDataProps } from 'data/piChartData';
-import { PiChartData } from 'data/piChartData';
+import useAnalytics from '../hook/useAnalytics';
+import { User} from 'utils/interfaces';
 import customShadows from 'theme/shadows';
 import PiChart from './PiChart';
+import dayjs from 'dayjs';
 
-const YourPiChart = () => {
+interface YourPiChartProps {
+  user: User | null;
+}
+
+interface PiChartDataItem {
+  id: number;
+  name: string;
+  value: number; // Percentage
+  visible: boolean;
+}
+
+const YourPiChart = ({ user }: YourPiChartProps) => {
+  const { transactions } = useAnalytics(user);
   const [timeline, setTimeline] = useState('monthly');
-  const [chartData, setChartData] = useState(PiChartData);
   const chartRef = useRef<EChartsReactCore>(null);
-  const theme = useTheme();
+  const theme = useTheme(); // Corrected from useTheme0
+
+  // Compute chart data based on transactions and timeline
+  const chartData = useMemo(() => {
+    const now = dayjs();
+    let filteredTransactions = transactions.filter((tx) => tx.status === 'completed');
+
+    // Filter transactions by timeline
+    if (timeline === 'weekly') {
+      const startOfWeek = now.startOf('week');
+      filteredTransactions = filteredTransactions.filter(
+        (tx) => tx.createdAt && dayjs(tx.createdAt).isAfter(startOfWeek),
+      );
+    } else if (timeline === 'monthly') {
+      const startOfMonth = now.startOf('month');
+      filteredTransactions = filteredTransactions.filter(
+        (tx) => tx.createdAt && dayjs(tx.createdAt).isAfter(startOfMonth),
+      );
+    } else if (timeline === 'yearly') {
+      const startOfYear = now.startOf('year');
+      filteredTransactions = filteredTransactions.filter(
+        (tx) => tx.createdAt && dayjs(tx.createdAt).isAfter(startOfYear),
+      );
+    }
+
+    // Aggregate amounts by company
+    const companyTotals = filteredTransactions.reduce((acc, tx) => {
+      if (tx.companyName) {
+        acc[tx.companyName] = (acc[tx.companyName] || 0) + tx.amount;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calculate total amount
+    const totalAmount = Object.values(companyTotals).reduce((sum, amount) => sum + amount, 0);
+
+    // Convert to percentage data
+    return Object.entries(companyTotals).map(([name], index) => ({
+      id: index + 1,
+      name,
+      value: totalAmount > 0 ? Number(((companyTotals[name] / totalAmount) * 100).toFixed(2)) : 0,
+      visible: true,
+    }));
+  }, [transactions, timeline]);
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     setTimeline(event.target.value);
@@ -29,21 +84,20 @@ const YourPiChart = () => {
     const updatedData = chartData.map((item) =>
       item.name === name ? { ...item, visible: !item.visible } : item,
     );
-    setChartData(updatedData);
     updateChart(updatedData);
   };
 
-  const updateChart = (data: PiChartDataProps[]) => {
+  const updateChart = (data: PiChartDataItem[]) => {
     const echartsInstance = chartRef.current?.getEchartsInstance();
     if (!echartsInstance) return;
 
     const visibleData = data
       .filter((item) => item.visible)
-      .map((item) => ({
+      .map((item, index) => ({
         value: item.value,
         name: item.name,
         itemStyle: {
-          color: item.id === 1 ? theme.palette.primary.main : theme.palette.secondary.main,
+          color: index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main,
         },
       }));
 
@@ -58,9 +112,9 @@ const YourPiChart = () => {
 
   return (
     <Paper sx={{ py: 2.5, height: 350 }}>
-      <Stack alignItems="center" justifyContent="space-between">
+      <Stack alignItems="center" justifyContent="space-between" direction="row">
         <Typography variant="body1" fontWeight={700}>
-          Your Pie Chart
+          Investment Distribution
         </Typography>
 
         <FormControl
@@ -83,10 +137,10 @@ const YourPiChart = () => {
         </FormControl>
       </Stack>
 
-      <PiChart chartRef={chartRef} sx={{ height: '180px !important' }} />
+      <PiChart chartRef={chartRef} data={chartData} sx={{ height: '180px !important' }} />
 
-      <Stack px={2} py={1} alignItems="center" borderRadius={4} boxShadow={customShadows[1]}>
-        {chartData.map((item) => (
+      <Stack px={2} py={1} alignItems="center" borderRadius={4} boxShadow={customShadows[1]} direction="row">
+        {chartData.map((item, index) => (
           <React.Fragment key={item.id}>
             <Stack
               component={ButtonBase}
@@ -104,7 +158,7 @@ const YourPiChart = () => {
                 borderRadius="50%"
                 bgcolor={
                   item.visible
-                    ? item.id === 1
+                    ? index % 2 === 0
                       ? 'primary.main'
                       : 'secondary.main'
                     : 'neutral.light'
@@ -119,7 +173,7 @@ const YourPiChart = () => {
                 </Typography>
               </Box>
             </Stack>
-            {item.id !== 2 && (
+            {index < chartData.length - 1 && (
               <Divider sx={{ height: 50 }} orientation="vertical" variant="middle" flexItem />
             )}
           </React.Fragment>

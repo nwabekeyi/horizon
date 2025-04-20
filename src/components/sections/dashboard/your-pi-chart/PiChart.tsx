@@ -5,17 +5,24 @@ import * as echarts from 'echarts/core';
 import { PieChart } from 'echarts/charts';
 import { TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { PiChartData } from 'data/piChartData';
 import { useMemo } from 'react';
+
+interface PiChartDataItem {
+  id: number;
+  name: string;
+  value: number; // Percentage
+  visible: boolean;
+}
 
 interface PiChartProps {
   sx?: SxProps;
   chartRef: React.RefObject<EChartsReactCore>;
+  data: PiChartDataItem[];
 }
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
 
-const PiChart = ({ chartRef, ...rest }: PiChartProps) => {
+const PiChart = ({ chartRef, data, ...rest }: PiChartProps) => {
   const theme = useTheme();
 
   const option = useMemo(
@@ -29,14 +36,13 @@ const PiChart = ({ chartRef, ...rest }: PiChartProps) => {
           name: '',
           type: 'pie',
           radius: '80%',
-          data: PiChartData.map((item) => {
-            return {
-              ...item,
-              itemStyle: {
-                color: item.id === 1 ? theme.palette.primary.main : theme.palette.secondary.main,
-              },
-            };
-          }),
+          data: data.map((item, index) => ({
+            value: item.value,
+            name: item.name,
+            itemStyle: {
+              color: index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main,
+            },
+          })),
           emphasis: {
             label: {
               show: false,
@@ -53,7 +59,7 @@ const PiChart = ({ chartRef, ...rest }: PiChartProps) => {
         },
       ],
     }),
-    [theme],
+    [theme, data],
   );
 
   return <ReactEchart ref={chartRef} echarts={echarts} option={option} {...rest} />;

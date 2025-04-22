@@ -3,7 +3,7 @@ const companiesUrl = `${API_BASE_URL}/companies`;
 const usersUrl = `${API_BASE_URL}/users`;
 const transactionsUrl = `${API_BASE_URL}/transactions`;
 const paymentDetails = `${API_BASE_URL}/payment-details`;
-
+const withdrawalsUrl = `${API_BASE_URL}/withdrawals`;
 
 if (!API_BASE_URL) {
   throw new Error("VITE_API_URL is not defined in your environment variables.");
@@ -21,5 +21,7 @@ export const ENDPOINTS = {
   RESETPASSWORD: `${API_BASE_URL}/auth/reset-password`,
   VERIFICATION_SUBMISSION: `${API_BASE_URL}/kyc/submit`,
   TRANSACTIONS: transactionsUrl,
-  addPaymentDetails: `${paymentDetails}/add`
+  addPaymentDetails: `${paymentDetails}/add`,
+  WITHDRAWALS: withdrawalsUrl,
+  BROKER_FEE: `${API_BASE_URL}/broker-fee`
 };

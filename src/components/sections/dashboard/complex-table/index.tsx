@@ -6,19 +6,57 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconifyIcon from 'components/base/IconifyIcon';
-import TransactionTable from './TransactionTable';
-import { User } from 'utils/interfaces';
+import TransactionTable from './TransactionTable'; // Ensure this imports correctly
+import useAnalytics from 'components/sections/dashboard/hook/useAnalytics';
+import { User } from 'utils/interfaces'; // Import User type
+import { DisplayTransaction } from 'utils/interfaces'; // Import the shared DisplayTransaction type
 
-interface AllTransactionsProps {
-  user: User | null;
-}
-
-const AllTransactions = ({ user }: AllTransactionsProps) => {
+const AllTransactions = ({ user }: { user: User | null }) => {
   const [searchText, setSearchText] = useState('');
+  const { transactions, withdrawals } = useAnalytics(user);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
   };
+
+  // Map transactions to DisplayTransaction format
+  const allTransactions: DisplayTransaction[] = transactions.map((tx) => ({
+    _id: tx._id,
+    amount: tx.amount,
+    createdAt: tx.createdAt instanceof Date ? tx.createdAt : new Date(tx.createdAt || Date.now()),
+    status: tx.status === 'completed' ? 'successful' : tx.status,
+    companyName: tx.companyName || 'Unknown',
+    type: 'transaction',
+    currency: tx.cryptoCurrency || 'usd', // Default to USD if fiat
+  }));
+
+  // Map withdrawals to DisplayTransaction format
+  const allWithdrawals: DisplayTransaction[] = withdrawals.map((wd) => {
+    let companyName = 'Unknown';
+    let currency: DisplayTransaction['currency'] = 'usd';
+    if (wd.paymentAccountDetails) {
+      const details = wd.paymentAccountDetails;
+      if (details.type === 'fiat' && details.accountDetails.bankName) {
+        companyName = details.accountDetails.bankName;
+        currency = details.currency;
+      } else if (details.type === 'crypto' && details.currency) {
+        companyName = `${details.currency.toUpperCase()} Wallet`;
+        currency = details.currency;
+      }
+    }
+
+    return {
+      _id: wd._id,
+      amount: wd.amount,
+      createdAt: wd.createdAt instanceof Date ? wd.createdAt : new Date(wd.createdAt || Date.now()),
+      status: wd.status,
+      companyName,
+      type: 'withdrawal',
+      currency,
+    };
+  });
+
+  const combinedTransactions = [...allTransactions, ...allWithdrawals];
 
   return (
     <Box component={Paper} px={0} height={{ xs: 435, sm: 390 }}>
@@ -50,7 +88,11 @@ const AllTransactions = ({ user }: AllTransactionsProps) => {
       </Stack>
 
       <Box mt={{ xs: 1.25, sm: 1 }} height={313}>
-        <TransactionTable searchText={searchText} user={user} />
+        <TransactionTable
+          searchText={searchText}
+          itemsPerPage={10}
+          transactions={combinedTransactions}
+        />
       </Box>
     </Box>
   );

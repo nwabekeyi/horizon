@@ -1,259 +1,121 @@
-import { useState } from 'react';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
+import { useState, useMemo } from 'react';
+import Tooltip from '@mui/material/Tooltip';
 import { DataGrid, GridColDef, GridCellParams } from '@mui/x-data-grid';
 import DataGridFooter from 'components/common/DataGridFooter';
 import IconifyIcon from 'components/base/IconifyIcon';
-import ActionMenu from './ActionMenu';
-import useAnalytics from '../hook/useAnalytics';
-import { Withdrawal, User } from 'utils/interfaces';
 import dayjs from 'dayjs';
+import { DisplayTransaction } from 'utils/interfaces'; 
+import Stack from '@mui/material/Stack';
+
+interface ActionItem {
+  icon?: string;
+  label: string;
+  onClick: (id: string) => void;
+}
 
 interface TransactionTableProps {
   searchText: string;
-  user: User | null;
+  itemsPerPage: number;
+  transactions: DisplayTransaction[];
+  actions?: ActionItem[] | ((transaction: DisplayTransaction) => ActionItem[]);
 }
 
-interface DisplayTransaction {
-  _id: string;
-  amount: number;
-  createdAt: Date;
-  status: 'pending' | 'failed' | 'successful';
-  companyName: string;
-  type: string;
-}
+const getCurrencySymbol = (currency: string | undefined): string => {
+  switch (currency?.toLowerCase()) {
+    case 'usd': return '$';
+    case 'cad': return 'C$';
+    case 'eur': return '€';
+    case 'gbp': return '£';
+    case 'btc': return '₿';
+    case 'eth': return 'Ξ';
+    case 'usdt': return '₮';
+    default: return '$';
+  }
+};
 
-const mockWithdrawals: Withdrawal[] = [
-  {
-    _id: 'wd1',
-    amount: 2000,
-    createdAt: new Date('2025-04-20T12:00:00+01:00'),
-    status: 'pending',
-    bankAccount: 'Bank A - ****1234',
-    type: 'withdrawal',
-  },
-  {
-    _id: 'wd2',
-    amount: 1500,
-    createdAt: new Date('2025-04-19T09:30:00+01:00'),
-    status: 'successful',
-    bankAccount: 'Bank B - ****5678',
-    type: 'withdrawal',
-  },
-  {
-    _id: 'wd3',
-    amount: 500,
-    createdAt: new Date('2025-04-18T14:15:00+01:00'),
-    status: 'failed',
-    bankAccount: 'Bank C - ****9012',
-    type: 'withdrawal',
-  },
-];
+const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: TransactionTableProps) => {
+  const [page, setPage] = useState<number>(0);
 
-const columns: GridColDef[] = [
-  {
-    field: '__check__',
-    headerName: '',
-    width: 52,
-    sortable: false,
-    disableColumnMenu: true,
-  },
-  {
-    field: '_id',
-    headerName: 'ID',
-    editable: false,
-    align: 'left',
-    flex: 2,
-    minWidth: 130,
-    renderHeader: () => (
-      <Typography variant="body2" color="text.disabled" fontWeight={500} ml={1}>
-        ID
-      </Typography>
-    ),
-    renderCell: (params: GridCellParams) => {
-      const id = params.value;
-      const shortenedId = id && id.length > 6 ? `${id.slice(0, 6)}...` : id;
+  const filteredTransactions = useMemo(() => {
+    if (!searchText) return transactions;
+    return transactions.filter((transaction) =>
+      transaction.companyName.toLowerCase().includes(searchText.toLowerCase()) ||
+      transaction.status.toLowerCase().includes(searchText.toLowerCase()) ||
+      transaction._id.toLowerCase().includes(searchText.toLowerCase()) ||
+      (transaction.currency && transaction.currency.toLowerCase().includes(searchText.toLowerCase()))
+    );
+  }, [searchText, transactions]);
 
-      return (
-        <Stack ml={1} height={1} direction="column" alignSelf="center" justifyContent="center">
-          <Typography variant="body2" fontWeight={600}>
-            {shortenedId}
-          </Typography>
-        </Stack>
-      );
+  const columns: GridColDef[] = [
+    { 
+      field: 'amount', 
+      headerName: 'Amount', 
+      flex: 1, 
+      renderCell: (params: GridCellParams) => `${getCurrencySymbol(params.row.currency)}${params.value}` 
     },
-  },
-  {
-    field: 'companyName',
-    headerName: 'Company/Bank',
-    editable: false,
-    align: 'left',
-    flex: 2,
-    minWidth: 150,
-    renderCell: (params: GridCellParams) => (
-      <Typography variant="body2" fontWeight={600}>
-        {params.value || 'Unknown'}
-      </Typography>
-    ),
-  },
-  {
-    field: 'amount',
-    headerName: 'Amount (USD)',
-    editable: false,
-    align: 'left',
-    flex: 1,
-    minWidth: 120,
-    renderCell: (params: GridCellParams) => (
-      <Typography variant="body2" fontWeight={600}>
-        ${params.value.toFixed(2)}
-      </Typography>
-    ),
-  },
-  {
-    field: 'type',
-    headerName: 'Type',
-    editable: false,
-    align: 'left',
-    flex: 1,
-    minWidth: 100,
-    renderCell: (params: GridCellParams) => (
-      <Typography variant="body2" fontWeight={600}>
-        {params.value.charAt(0).toUpperCase() + params.value.slice(1)}
-      </Typography>
-    ),
-  },
-  {
-    field: 'status',
-    headerName: 'Status',
-    headerAlign: 'left',
-    editable: false,
-    flex: 1,
-    minWidth: 120,
-    renderCell: (params: GridCellParams) => {
-      const status = params.value.toLowerCase();
-      let color = '';
-      let icon = '';
-
-      if (status === 'successful') {
-        color = 'success.main';
-        icon = 'ic:baseline-check-circle';
-      } else if (status === 'pending') {
-        color = 'warning.main';
-        icon = 'ic:baseline-hourglass-top';
-      } else if (status === 'failed') {
-        color = 'error.main';
-        icon = 'ic:baseline-cancel';
-      }
-
-      return (
-        <Stack alignItems="center" spacing={0.8} height={1}>
-          <IconifyIcon icon={icon} color={color} fontSize="h5.fontSize" />
-          <Typography variant="body2" fontWeight={600}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </Typography>
-        </Stack>
-      );
+    { field: 'companyName', headerName: 'Company', flex: 1 },
+    { 
+      field: 'createdAt', 
+      headerName: 'Date', 
+      flex: 1, 
+      renderCell: (params: GridCellParams) => dayjs(params.value).format('MMM DD, YYYY') 
     },
-  },
-  {
-    field: 'createdAt',
-    headerName: 'Date',
-    editable: false,
-    align: 'left',
-    flex: 2,
-    minWidth: 150,
-    renderCell: (params: GridCellParams) => (
-      <Typography variant="body2" fontWeight={600}>
-        {params.value instanceof Date && !isNaN(params.value.getTime())
-          ? dayjs(params.value).format('MMM DD, YYYY HH:mm')
-          : 'N/A'}
-      </Typography>
-    ),
-  },
-  {
-    field: 'action',
-    headerName: 'Action',
-    headerAlign: 'right',
-    align: 'right',
-    editable: false,
-    sortable: false,
-    flex: 1,
-    minWidth: 100,
-    renderHeader: () => null,
-    renderCell: (params: GridCellParams) => (
-      <ActionMenu
-        transactionId={params.row._id}
-        status={params.row.status}
-        onAction={(action, id) => {
-          console.log(`Action: ${action} for transaction ID: ${id}`);
-          // Add logic for API or status handling here
-        }}
-      />
-    ),
-  },
-];
-
-const TransactionTable = ({ searchText, user }: TransactionTableProps) => {
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(4);
-  const { transactions: investmentTransactions } = useAnalytics(user);
-
-  const allTransactions: DisplayTransaction[] = [
-    ...investmentTransactions.map((tx) => {
-      const createdAt =
-        tx.createdAt instanceof Date
-          ? tx.createdAt
-          : new Date(tx.createdAt || Date.now());
-
-      const normalizedStatus: DisplayTransaction['status'] =
-        tx.status === 'completed'
-          ? 'successful'
-          : (tx.status as DisplayTransaction['status']);
-
-      return {
-        _id: tx._id,
-        amount: tx.amount,
-        createdAt,
-        status: normalizedStatus,
-        companyName: tx.companyName || 'Unknown',
-        type: 'investment',
-      };
-    }),
-    ...mockWithdrawals.map((wd) => ({
-      _id: wd._id,
-      amount: wd.amount,
-      createdAt: wd.createdAt,
-      status: wd.status,
-      companyName: wd.bankAccount || 'Unknown',
-      type: 'withdrawal',
-    })),
+    { field: 'status', headerName: 'Status', flex: 1 },
   ];
 
-  const filteredTransactions = allTransactions.filter(
-    (tx) =>
-      tx._id.toLowerCase().includes(searchText.toLowerCase()) ||
-      tx.companyName.toLowerCase().includes(searchText.toLowerCase())
-  );
+  if (actions) {
+    columns.push({
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 1,
+      sortable: false,
+      filterable: false,
+      renderCell: (params: GridCellParams) => {
+        const row = params.row as DisplayTransaction;
+        const actionList: ActionItem[] = typeof actions === 'function' ? actions(row) : actions;
+
+        return (
+          <Stack direction="row" spacing={1}>
+            {actionList.map((action, index) => (
+              <Tooltip key={index} title={action.label}>
+                <span>
+                  {action.icon ? (
+                    <IconifyIcon
+                      icon={action.icon}
+                      sx={{ cursor: 'pointer', fontSize: 24 }}
+                      onClick={() => action.onClick(row._id)}
+                    />
+                  ) : (
+                    // fallback if no icon provided
+                    <span
+                      style={{ cursor: 'pointer', fontSize: 14, fontWeight: 500 }}
+                      onClick={() => action.onClick(row._id)}
+                    >
+                      {action.label}
+                    </span>
+                  )}
+                </span>
+              </Tooltip>
+            ))}
+          </Stack>
+        );
+      }
+    });
+  }
 
   return (
     <DataGrid
-      density="standard"
-      columns={columns}
+      autoHeight
+      pageSize={itemsPerPage}
+      rowsPerPageOptions={[itemsPerPage]}
       rows={filteredTransactions}
-      rowHeight={52}
-      disableColumnMenu
-      disableColumnSelector
-      disableSelectionOnClick
-      pagination
-      page={page}
-      pageSize={pageSize}
+      columns={columns}
+      getRowId={(row) => row._id}
       onPageChange={(newPage) => setPage(newPage)}
-      onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+      page={page}
       components={{
         Footer: DataGridFooter,
       }}
-      checkboxSelection
-      getRowId={(row) => row._id}
     />
   );
 };

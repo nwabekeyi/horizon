@@ -4,11 +4,11 @@ import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
 import { FC } from 'react';
 
-interface Spent {
-  spent : number;
+interface Withdrawal {
+  withdrawals : number;
 }
 
-const Spend: FC<Spent> = ({spent}) => {
+const MonthylWithrawal: FC<Withdrawal> = ({withdrawals}) => {
   return (
     <Stack component={Paper} p={2.5} alignItems="center" spacing={2.25} height={100}>
       <Stack
@@ -26,11 +26,11 @@ const Spend: FC<Spent> = ({spent}) => {
           Spend this month
         </Typography>
         <Typography mt={0.25} variant="h3">
-          ${spent.toFixed(2)}
+          ${withdrawals.toFixed(2)}
         </Typography>
       </div>
     </Stack>
   );
 };
 
-export default Spend;
+export default MonthylWithrawal;

@@ -44,10 +44,10 @@ const SidebarCard = () => {
       })}
     >
       <Logo />
-      <Button sx={{ color: 'info.lighter', fontWeight: 700 }}>Upgrade to PRO</Button>
+      <Button sx={{ color: 'info.lighter', fontWeight: 700 }}>Upgrade to Income</Button>
       <Typography variant="body2" color="info.darker" lineHeight={1.75}>
-        to get access to all features! <br />
-        Connect with Venus World!
+        make your dream a reality <br />
+        invest and earn
       </Typography>
     </Stack>
   );

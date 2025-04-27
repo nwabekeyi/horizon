@@ -23,5 +23,6 @@ export const ENDPOINTS = {
   TRANSACTIONS: transactionsUrl,
   addPaymentDetails: `${paymentDetails}/add`,
   WITHDRAWALS: withdrawalsUrl,
-  BROKER_FEE: `${API_BASE_URL}/broker-fee`
+  BROKER_FEE: `${API_BASE_URL}/broker-fee`,
+  MAKE_WITHDRAWAL: `${withdrawalsUrl}/make`
 };

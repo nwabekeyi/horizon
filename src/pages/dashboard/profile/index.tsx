@@ -116,7 +116,6 @@ const UserProfile: FC = () => {
               <StyledTab label="Profile" value="1" />
               <StyledTab label="Investments" value="2" />
               <StyledTab label="Account" value="3" />
-              <StyledTab label="Security" value="4" />
             </StyledTabList>
           </Box>
         </StyledCard>

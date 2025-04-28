@@ -1,10 +1,10 @@
 import { useEffect, useReducer } from 'react';
-import { User, Transaction } from 'utils/interfaces';
+import { User, Transaction, Withdrawal } from 'utils/interfaces';
 import { useApiRequest } from 'hooks/useApi';
 import { ENDPOINTS } from 'utils/endpoints';
 
-// Define API response type
-interface ApiResponse {
+// Define API response types
+interface TransactionApiResponse {
   success: boolean;
   transactions: Array<{
     _id: string;
@@ -23,6 +23,32 @@ interface ApiResponse {
   }>;
 }
 
+interface WithdrawalApiResponse {
+  withdrawals: Array<{
+    _id: string;
+    user: string;
+    amount: number;
+    status: 'pending' | 'approved' | 'failed' | 'processing' | 'successful';
+    paymentAccountDetails?: {
+      type: 'fiat' | 'crypto';
+      currency: 'usd' | 'cad' | 'eur' | 'gbp' | 'btc' | 'eth' | 'usdt';
+      accountDetails: {
+        bankName?: string;
+        accountNumber?: string;
+        accountName?: string;
+        address?: string;
+        network?: 'erc20' | 'trc20' | 'bep20' | 'polygon' | 'solana';
+      };
+    };
+    withdrawalPin?: string;
+    brokerFee: number;
+    brokerFeeProof: string;
+    remarks?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+}
+
 // State & Actions
 interface AnalyticsState {
   totalInvestment: number;
@@ -32,6 +58,8 @@ interface AnalyticsState {
   accountBalance: number;
   investedCompanies: string[];
   pendingTransactions: Transaction[];
+  withdrawals: Withdrawal[];
+  totalWithdrawnThisMonth: number;
 }
 
 type Action =
@@ -42,6 +70,8 @@ type Action =
   | { type: 'SET_ACCOUNT_BALANCE'; payload: number }
   | { type: 'SET_INVESTED_COMPANIES'; payload: string[] }
   | { type: 'SET_PENDING_TRANSACTIONS'; payload: Transaction[] }
+  | { type: 'SET_WITHDRAWALS'; payload: Withdrawal[] } // Fix: Changed Transaction[] to Withdrawal[]
+  | { type: 'SET_TOTAL_WITHDRAWN_THIS_MONTH'; payload: number }
   | { type: 'RESET' };
 
 // Reducer
@@ -61,6 +91,10 @@ const analyticsReducer = (state: AnalyticsState, action: Action): AnalyticsState
       return { ...state, investedCompanies: action.payload };
     case 'SET_PENDING_TRANSACTIONS':
       return { ...state, pendingTransactions: action.payload };
+    case 'SET_WITHDRAWALS':
+      return { ...state, withdrawals: action.payload };
+    case 'SET_TOTAL_WITHDRAWN_THIS_MONTH':
+      return { ...state, totalWithdrawnThisMonth: action.payload };
     case 'RESET':
       return {
         totalInvestment: 0,
@@ -70,6 +104,8 @@ const analyticsReducer = (state: AnalyticsState, action: Action): AnalyticsState
         accountBalance: 0,
         investedCompanies: [],
         pendingTransactions: [],
+        withdrawals: [],
+        totalWithdrawnThisMonth: 0,
       };
     default:
       return state;
@@ -86,9 +122,14 @@ const useAnalytics = (user: User | null): AnalyticsState => {
     accountBalance: 0,
     investedCompanies: [],
     pendingTransactions: [],
+    withdrawals: [],
+    totalWithdrawnThisMonth: 0,
   });
 
-  const { callApi, loading, error } = useApiRequest<ApiResponse, never>();
+  const { callApi, loading, error } = useApiRequest<
+    TransactionApiResponse | WithdrawalApiResponse,
+    never
+  >();
 
   useEffect(() => {
     if (!user || !user._id) {
@@ -101,30 +142,36 @@ const useAnalytics = (user: User | null): AnalyticsState => {
     dispatch({ type: 'SET_ROI', payload: user.totalROI ?? 0 });
     dispatch({ type: 'SET_ACCOUNT_BALANCE', payload: user.accountBalance ?? 0 });
 
-    // Extract unique company names from user.investments
-    const investedCompanies = Array.isArray(user.investments)
-      ? [...new Set(user.investments.map((investment) => investment.companyName))]
-      : [];
-    console.log('Invested companies:', investedCompanies);
-    dispatch({ type: 'SET_INVESTED_COMPANIES', payload: investedCompanies });
-
-    const fetchTransactions = async () => {
+    const fetchData = async () => {
       try {
-        const response = await callApi({
-          url: `${ENDPOINTS.TRANSACTIONS}/user/${user._id}`,
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem('token')}`,
-          },
-        });
+        // Fetch transactions and withdrawals in parallel
+        const [transactionResponse, withdrawalResponse] = await Promise.all([
+          callApi({
+            url: `${ENDPOINTS.TRANSACTIONS}/user/${user._id}`,
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+            },
+          }),
+          callApi({
+            url: `${ENDPOINTS.WITHDRAWALS}/user/${user._id}`,
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+            },
+          }),
+        ]);
 
-        const transactionsArray = Array.isArray(response?.transactions)
-          ? response.transactions
+        // Process transactions
+        const transactionsArray = Array.isArray(
+          (transactionResponse as TransactionApiResponse)?.transactions
+        )
+          ? (transactionResponse as TransactionApiResponse).transactions
           : [];
 
         const transactions: Transaction[] = transactionsArray.map((tx) => {
-          const createdAt = tx.createdAt ? new Date(tx.createdAt) : undefined;
-          const updatedAt = tx.updatedAt ? new Date(tx.updatedAt) : undefined;
+          const createdAt = tx.createdAt ? new Date(tx.createdAt) : new Date();
+          const updatedAt = tx.updatedAt ? new Date(tx.updatedAt) : new Date();
           return {
             ...tx,
             createdAt,
@@ -157,23 +204,71 @@ const useAnalytics = (user: User | null): AnalyticsState => {
         }, 0);
 
         dispatch({ type: 'SET_SPENT_THIS_MONTH', payload: spentThisMonth });
+
+        // Extract unique company names from completed transactions
+        const investedCompanies = [
+          ...new Set(
+            transactions
+              .filter((tx) => tx.status === 'completed')
+              .map((tx) => tx.companyName)
+          ),
+        ];
+        console.log('Invested companies:', investedCompanies);
+        dispatch({ type: 'SET_INVESTED_COMPANIES', payload: investedCompanies });
+
+        // Process withdrawals
+        const withdrawalsArray = Array.isArray(
+          (withdrawalResponse as WithdrawalApiResponse)?.withdrawals
+        )
+          ? (withdrawalResponse as WithdrawalApiResponse).withdrawals
+          : [];
+
+        const withdrawals: Withdrawal[] = withdrawalsArray.map((wd) => {
+          const createdAt = wd.createdAt ? new Date(wd.createdAt) : new Date();
+          const updatedAt = wd.updatedAt ? new Date(wd.updatedAt) : new Date();
+          return {
+            ...wd,
+            createdAt,
+            updatedAt,
+          };
+        });
+
+        dispatch({ type: 'SET_WITHDRAWALS', payload: withdrawals });
+
+        // Calculate total withdrawn this month
+        const totalWithdrawnThisMonth = withdrawals.reduce((sum, wd) => {
+          if (
+            wd.status === 'successful' &&
+            wd.createdAt &&
+            wd.createdAt.getFullYear() === currentYear &&
+            wd.createdAt.getMonth() === currentMonth
+          ) {
+            return sum + wd.amount;
+          }
+          return sum;
+        }, 0);
+
+        dispatch({ type: 'SET_TOTAL_WITHDRAWN_THIS_MONTH', payload: totalWithdrawnThisMonth });
       } catch (err) {
-        console.error('Failed to fetch transactions:', err);
+        console.error('Failed to fetch data:', err);
         dispatch({ type: 'SET_TRANSACTIONS', payload: [] });
         dispatch({ type: 'SET_SPENT_THIS_MONTH', payload: 0 });
         dispatch({ type: 'SET_PENDING_TRANSACTIONS', payload: [] });
+        dispatch({ type: 'SET_INVESTED_COMPANIES', payload: [] });
+        dispatch({ type: 'SET_WITHDRAWALS', payload: [] });
+        dispatch({ type: 'SET_TOTAL_WITHDRAWN_THIS_MONTH', payload: 0 });
       }
     };
 
-    fetchTransactions();
+    fetchData();
   }, [user, callApi]);
 
   useEffect(() => {
     if (loading) {
-      console.log('Fetching transactions...');
+      console.log('Fetching data...');
     }
     if (error) {
-      console.error('Transaction fetch error:', error);
+      console.error('Data fetch error:', error);
     }
   }, [loading, error]);
 

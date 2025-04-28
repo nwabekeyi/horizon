@@ -43,13 +43,13 @@ const sitemap: MenuItem[] = [
   },
   {
     id: 4,
-    subheader: 'NFT Marketplace',
+    subheader: 'Marketplace',
     path: `${paths.dashboard}/nft-marketplace`,
     icon: 'ic:baseline-shopping-cart',
   },
   {
     id: 5,
-    subheader: 'Transaction History',
+    subheader: 'Withdrawal History',
     path: `${paths.dashboard}/transaction-history`,
     icon: 'ic:round-history',
   },

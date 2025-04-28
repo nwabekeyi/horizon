@@ -1,48 +1,57 @@
-// src/pages/dashboard/profile/modals/WithdrawFundsModal.tsx
+import { FC, useState, useEffect } from 'react';
+import {
+  Box,
+  CircularProgress,
+  TextField,
+  Typography,
+  Button,
+  styled,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
+import CustomModal from 'components/base/modal';
+import { User } from 'utils/interfaces';
+import { useCompressedDropzone } from 'hooks/useDropzoneConfig';
+import { ENDPOINTS } from 'utils/endpoints';
+import { useApiRequest } from 'hooks/useApi';
 
-import { FC, useState } from "react";
-import { Box, CircularProgress, TextField, Typography, Button, styled } from "@mui/material";
-import CustomModal from "components/base/modal";
-import { User } from "utils/interfaces";
-import { BrokerFeeResponse } from "../Interfaces";
-import { useCompressedDropzone } from "hooks/useDropzoneConfig";
-import { ENDPOINTS } from "utils/endpoints";
-
-// Styled components
-const SubmitButton = styled(Button)(({ theme }) => ({
-  marginTop: theme.spacing(2),
-  textTransform: "none",
-}));
-
-const DropzoneContainer = styled(Box)(({ theme }) => ({
-  border: `2px dashed ${theme.palette.divider}`,
-  borderRadius: theme.shape.borderRadius,
-  padding: theme.spacing(2),
-  textAlign: "center",
-  cursor: "pointer",
-  backgroundColor: theme.palette.background.default,
-  "&:hover": {
-    backgroundColor: theme.palette.action.hover,
-  },
-  marginBottom: theme.spacing(2),
-}));
-
-// Interface for API error
-interface ApiError {
-  message?: string;
+// Interfaces defined locally
+interface PaymentAccount {
+  _id: string;
+  userId: string;
+  currency: 'usd' | 'usdt';
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  bankSwiftCode?: string;
+  walletAddress?: string;
+  network?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Interface for withdrawal API response
+interface BrokerFeeResponse {
+  brokerFee: {
+    fee: number;
+    updatedAt: string;
+  };
+}
+
 interface WithdrawalResponse {
   message: string;
   withdrawalId: string;
   brokerFeeProofUrl: string;
 }
 
-// Interface for callApi parameters
+interface ApiError {
+  message?: string;
+}
+
 interface ApiRequestParams {
   url: string | null;
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: FormData;
   headers?: Record<string, string>;
 }
@@ -64,17 +73,45 @@ interface ResultModalProps {
   isSuccess: boolean;
 }
 
+// Styled components
+const SubmitButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  textTransform: 'none',
+}));
+
+const DropzoneContainer = styled(Box)(({ theme }) => ({
+  border: `2px dashed ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(2),
+  textAlign: 'center',
+  cursor: 'pointer',
+  backgroundColor: theme.palette.background.default,
+  '&:hover': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  marginBottom: theme.spacing(2),
+}));
+
+const PaymentDetailsContainer = styled(Box)(({ theme }) => ({
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(2),
+  backgroundColor: theme.palette.background.paper,
+  marginBottom: theme.spacing(2),
+  boxShadow: theme.shadows[1],
+}));
+
 // Result Modal Component
 const ResultModal: FC<ResultModalProps> = ({ isOpen, onClose, message, isSuccess }) => (
   <CustomModal
     open={isOpen}
-    title={isSuccess ? "Success" : "Error"}
+    title={isSuccess ? 'Success' : 'Error'}
     onCancel={onClose}
     onConfirm={onClose}
   >
     <Typography
       variant="body1"
-      color={isSuccess ? "success.main" : "error.main"}
+      color={isSuccess ? 'success.main' : 'error.main'}
       textAlign="center"
     >
       {message}
@@ -91,32 +128,90 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
   brokerFeeData,
   callApi,
 }) => {
-  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
-  const [amountError, setAmountError] = useState<string>("");
+  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<'fiat' | 'crypto' | ''>('');
+  const [currency, setCurrency] = useState<'usd' | 'usdt' | ''>('');
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [amountError, setAmountError] = useState<string>('');
+  const [accountError, setAccountError] = useState<string>('');
   const [brokerFeeProof, setBrokerFeeProof] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string>("");
+  const [fileError, setFileError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [resultMessage, setResultMessage] = useState<string>("");
+  const [resultMessage, setResultMessage] = useState<string>('');
   const [isResultModalOpen, setIsResultModalOpen] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+  // Fetch payment accounts
+  const {
+    data: paymentAccountsData,
+    loading: paymentAccountsLoading,
+    error: paymentAccountsError,
+    callApi: callPaymentAccountsApi,
+  } = useApiRequest<PaymentAccount[]>();
+
+  useEffect(() => {
+    if (isOpen && user?._id) {
+      callPaymentAccountsApi({
+        url: `${ENDPOINTS.PAYMENT_ACCOUNTS}?userId=${user._id}`,
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+        },
+      });
+    }
+  }, [isOpen, user?._id, callPaymentAccountsApi]);
+
+  // Filter payment accounts based on payment method
+  const filteredAccounts = paymentAccountsData
+    ? paymentAccountsData.filter((account) =>
+        paymentMethod === 'fiat' ? !!account.accountNumber : !!account.walletAddress
+      )
+    : [];
+
+  // Infer currency based on payment method
+  useEffect(() => {
+    if (paymentMethod === 'fiat') {
+      setCurrency('usd');
+    } else if (paymentMethod === 'crypto') {
+      setCurrency('usdt');
+    } else {
+      setCurrency('');
+    }
+    // Reset account selection when payment method changes
+    setSelectedAccountId('');
+    setAccountError('');
+  }, [paymentMethod]);
+
+  // Auto-select account if only one exists
+  useEffect(() => {
+    if (filteredAccounts.length === 1) {
+      setSelectedAccountId(filteredAccounts[0]._id);
+      setAccountError('');
+    } else {
+      setSelectedAccountId('');
+    }
+  }, [filteredAccounts]);
+
+  // Get selected account details
+  const selectedAccount = filteredAccounts.find((account) => account._id === selectedAccountId);
 
   // Setup dropzone for broker fee proof
   const { getRootProps, getInputProps, isDragActive } = useCompressedDropzone({
     onFileAccepted: (file) => {
-      console.log("Accepted file:", {
+      console.log('Accepted file:', {
         name: file.name,
         type: file.type,
         size: file.size,
       });
-      if (file.type !== "image/png") {
-        setFileError("Proof must be a PNG file");
+      if (file.type !== 'image/png') {
+        setFileError('Proof must be a PNG file');
         return;
       }
       setBrokerFeeProof(file);
-      setFileError("");
+      setFileError('');
     },
     onFileRejected: (reason) => {
-      console.log("File rejected:", reason);
+      console.log('File rejected:', reason);
       setFileError(reason);
     },
     maxCompressedSizeMB: 5,
@@ -130,41 +225,52 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
   // Validate amount
   const validateAmount = () => {
     if (isNaN(amount) || amount <= 0) {
-      setAmountError("Please enter a valid amount");
+      setAmountError('Please enter a valid amount');
       return false;
     }
     if (user && amount > (user.accountBalance || 0)) {
-      setAmountError("Amount exceeds available balance");
+      setAmountError('Amount exceeds available balance');
       return false;
     }
-    setAmountError("");
+    setAmountError('');
+    return true;
+  };
+
+  // Validate payment account
+  const validateAccount = () => {
+    if (!selectedAccountId) {
+      setAccountError('Please select a payment account');
+      return false;
+    }
+    setAccountError('');
     return true;
   };
 
   // Validate file
   const validateFile = () => {
     if (!brokerFeeProof) {
-      setFileError("Please upload proof of broker fee payment");
+      setFileError('Please upload proof of broker fee payment');
       return false;
     }
-    setFileError("");
+    setFileError('');
     return true;
   };
 
   // Handle form submission
   const handleWithdrawSubmit = async () => {
-    if (!user || !validateAmount() || !validateFile() || !brokerFeeProof) {
-      setAmountError("Please complete all required fields");
+    if (!user || !validateAmount() || !validateAccount() || !validateFile() || !brokerFeeProof || !currency) {
       return;
     }
 
     setSubmitting(true);
     const formData = new FormData();
-    formData.append("user", user._id);
-    formData.append("amount", amount.toString());
-    formData.append("brokerFee", calculatedBrokerFee.toString());
-    formData.append("brokerFeeProof", brokerFeeProof, brokerFeeProof.name);
-    formData.append("remarks", "");
+    formData.append('user', user._id);
+    formData.append('amount', amount.toString());
+    formData.append('currency', currency);
+    formData.append('brokerFee', calculatedBrokerFee.toString());
+    formData.append('brokerFeeProof', brokerFeeProof, brokerFeeProof.name);
+    formData.append('paymentAccountId', selectedAccountId);
+    formData.append('remarks', '');
 
     // Log FormData contents for debugging
     for (const [key, value] of formData.entries()) {
@@ -174,7 +280,7 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
     try {
       const response = await callApi({
         url: ENDPOINTS.WITHDRAWALS,
-        method: "POST",
+        method: 'POST',
         body: formData,
         headers: {
           // Avoid setting Content-Type; let browser handle multipart/form-data
@@ -185,9 +291,9 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
       setIsResultModalOpen(true);
       onClose(); // Close the withdraw modal
     } catch (error: unknown) {
-      console.error("Withdrawal request failed:", error);
+      console.error('Withdrawal request failed:', error);
       const apiError = error as ApiError;
-      setResultMessage(apiError.message || "Failed to submit withdrawal request");
+      setResultMessage(apiError.message || 'Failed to submit withdrawal request');
       setIsSuccess(false);
       setIsResultModalOpen(true);
       onClose(); // Close the withdraw modal
@@ -199,34 +305,155 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
   // Handle result modal close
   const handleResultModalClose = () => {
     setIsResultModalOpen(false);
-    setResultMessage("");
+    setResultMessage('');
     setIsSuccess(false);
     // Reset form fields
-    setWithdrawAmount("");
-    setAmountError("");
+    setWithdrawAmount('');
+    setPaymentMethod('');
+    setCurrency('');
+    setSelectedAccountId('');
+    setAmountError('');
+    setAccountError('');
     setBrokerFeeProof(null);
-    setFileError("");
+    setFileError('');
   };
 
   return (
     <>
       <CustomModal open={isOpen} title="Withdraw Funds" onCancel={onClose} noConfirm>
         <Box>
+          {/* Payment Method Selection */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Payment Method</InputLabel>
+            <Select
+              value={paymentMethod}
+              label="Payment Method"
+              onChange={(e) => setPaymentMethod(e.target.value as 'fiat' | 'crypto')}
+            >
+              <MenuItem value="fiat">Fiat</MenuItem>
+              <MenuItem value="crypto">Crypto</MenuItem>
+            </Select>
+          </FormControl>
+
+          {/* Payment Account Selection */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Payment Account</InputLabel>
+            <Select
+              value={selectedAccountId}
+              label="Payment Account"
+              onChange={(e) => {
+                setSelectedAccountId(e.target.value);
+                setAccountError('');
+              }}
+              disabled={paymentAccountsLoading || !paymentMethod || filteredAccounts.length === 0}
+              error={!!accountError}
+            >
+              {filteredAccounts.length === 0 && paymentMethod && (
+                <MenuItem value="" disabled>
+                  {paymentMethod === 'fiat'
+                    ? 'Fiat payment method is unavailable for now'
+                    : 'Crypto payment method is unavailable for now'}
+                </MenuItem>
+              )}
+              {!paymentMethod && (
+                <MenuItem value="" disabled>
+                  Please select a payment method
+                </MenuItem>
+              )}
+              {filteredAccounts.map((account) => (
+                <MenuItem key={account._id} value={account._id}>
+                  {account.accountNumber
+                    ? `${account.accountNumber} (${account.bankName})`
+                    : `${account.walletAddress} (${account.network})`}
+                </MenuItem>
+              ))}
+            </Select>
+            {accountError && (
+              <Typography color="error" variant="body2" mt={1}>
+                {accountError}
+              </Typography>
+            )}
+          </FormControl>
+
+          {/* Display Account Details */}
+          {paymentAccountsLoading && (
+            <Box display="flex" justifyContent="center" mb={2}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+          {paymentAccountsError && (
+            <Typography color="error" variant="body2" mb={2}>
+              Error loading payment accounts: {paymentAccountsError.message}
+            </Typography>
+          )}
+          {!paymentAccountsLoading &&
+            !paymentAccountsError &&
+            paymentAccountsData?.length === 0 && (
+              <Typography color="error" variant="body2" mb={2}>
+                No payment accounts found. Please add an account.
+              </Typography>
+            )}
+          {selectedAccount && (
+            <>
+              <Typography
+                variant="body2"
+                fontWeight="bold"
+                color="text.primary"
+                mb={1}
+              >
+                Withdrawal will be processed in {currency === 'usd' ? 'USD (Fiat)' : 'USDT (Crypto)'}
+              </Typography>
+              <PaymentDetailsContainer>
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  color="text.primary"
+                  mb={1}
+                >
+                  Payment Details
+                </Typography>
+                {selectedAccount.accountNumber ? (
+                  <>
+                    <Typography variant="body2" fontWeight="bold">
+                      Bank: <span style={{ fontWeight: 'normal' }}>{selectedAccount.bankName || 'N/A'}</span>
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      Account Number: <span style={{ fontWeight: 'normal' }}>{selectedAccount.accountNumber || 'N/A'}</span>
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      Account Name: <span style={{ fontWeight: 'normal' }}>{selectedAccount.accountName || 'N/A'}</span>
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="body2" fontWeight="bold">
+                      Wallet Address: <span style={{ fontWeight: 'normal' }}>{selectedAccount.walletAddress || 'N/A'}</span>
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      Network: <span style={{ fontWeight: 'normal' }}>{selectedAccount.network || 'N/A'}</span>
+                    </Typography>
+                  </>
+                )}
+              </PaymentDetailsContainer>
+            </>
+          )}
+
           {/* Amount Input */}
           <TextField
             fullWidth
-            label="Withdrawal Amount (USD)"
+            label={`Withdrawal Amount (${currency ? currency.toUpperCase() : 'Select a payment method'})`}
             type="number"
             value={withdrawAmount}
             onChange={(e) => {
               setWithdrawAmount(e.target.value);
-              setAmountError("");
+              setAmountError('');
             }}
             error={!!amountError}
             helperText={amountError}
-            inputProps={{ min: 0, step: "0.01" }}
+            inputProps={{ min: 0, step: '0.01' }}
             aria-label="Withdrawal amount"
             sx={{ mb: 2 }}
+            disabled={!currency}
           />
 
           {/* Broker Fee Display */}
@@ -243,7 +470,7 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
           {brokerFeeData?.brokerFee && (
             <>
               <Typography variant="body2" mb={1}>
-                <strong>Broker Fee Percentage:</strong> {brokerFeeData.brokerFee.fee}% (Updated:{" "}
+                <strong>Broker Fee Percentage:</strong> {brokerFeeData.brokerFee.fee}% (Updated:{' '}
                 {new Date(brokerFeeData.brokerFee.updatedAt).toLocaleDateString()})
               </Typography>
               <Typography variant="body2" mb={2}>
@@ -286,10 +513,21 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
             variant="contained"
             color="primary"
             onClick={handleWithdrawSubmit}
-            disabled={!!amountError || !withdrawAmount || !brokerFeeProof || !!fileError || submitting}
+            disabled={
+              !!amountError ||
+              !withdrawAmount ||
+              !!accountError ||
+              !selectedAccountId ||
+              !currency ||
+              !brokerFeeProof ||
+              !!fileError ||
+              submitting ||
+              paymentAccountsLoading ||
+              brokerFeeLoading
+            }
             fullWidth
           >
-            {submitting ? <CircularProgress size={24} /> : "Submit Withdrawal"}
+            {submitting ? <CircularProgress size={24} /> : 'Submit Withdrawal'}
           </SubmitButton>
         </Box>
       </CustomModal>

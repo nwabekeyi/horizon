@@ -119,7 +119,7 @@ console.log(loading)
             />
           }
         >
-          Back to dashboard
+          Back to home page
         </Button>
       </Box>
 

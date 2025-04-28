@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CircularProgress, Alert, Box, Link } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import Table from 'components/base/table';
+import TrendingCryptos from 'components/sections/dashboard/trendingCryptos';
 
 interface CryptoItem {
   id: string;
@@ -117,6 +118,7 @@ const NFTMarketplace = (): JSX.Element => {
 
   return (
     <Box sx={{ p: 4, width: '100%' }}>
+      <TrendingCryptos />
       <Table
         data={data?.assets || []}
         columns={columns}

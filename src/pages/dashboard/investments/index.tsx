@@ -16,6 +16,7 @@ import { useCompressedDropzone } from '../../../hooks/useDropzoneConfig';
 import { useInvestmentSteps } from './hooks/useInvestmentSteps';
 import CustomModal from 'components/base/modal';
 import { useUserDetails } from 'hooks/useUserdetails';
+import InvestmentHistory from './investmentHistory';
 
 // Mock wire transfer details
 const wireTransferDetails: {
@@ -150,6 +151,8 @@ const Investment = () => {
           </Grid>
         </Grid>
       </Paper>
+
+      <InvestmentHistory />
 
       {isInvestmentFlowOpen && (
         <Box

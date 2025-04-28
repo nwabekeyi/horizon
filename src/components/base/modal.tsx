@@ -33,7 +33,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
     <Dialog open={open} onClose={onCancel} fullScreen={fullScreen} maxWidth="sm" fullWidth>
       {title && <DialogTitle>{title}</DialogTitle>}
 
-      <DialogContent dividers>
+      <DialogContent dividers >
         {children}
       </DialogContent>
 

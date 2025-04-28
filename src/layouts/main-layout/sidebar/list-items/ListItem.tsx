@@ -37,7 +37,7 @@ const ListItem = ({ subheader, icon, path, active }: MenuItem) => {
         height={36}
         width={4}
         borderRadius={10}
-        bgcolor={active && path === '/' ? 'primary.main' : 'transparent'}
+        bgcolor={active ? 'primary.main' : 'transparent'}
       />
     </Stack>
   );

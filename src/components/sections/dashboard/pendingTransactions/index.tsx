@@ -5,21 +5,42 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import TransactionCard from './TransactionCard';
 import useAnalytics from '../hook/useAnalytics';
-import { User, Transaction } from 'utils/interfaces';
+import { User, Transaction} from 'utils/interfaces';
 
 interface PendingTransactionsProps {
-  user: User | null; // Match YourPiChart prop
+  user: User | null;
 }
 
 const PendingTransactions = ({ user }: PendingTransactionsProps) => {
-  const { transactions } = useAnalytics(user);
+  const { transactions, withdrawals } = useAnalytics(user);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
 
-  // Filter pending transactions
+  // Filter pending transactions and withdrawals
   useEffect(() => {
-    const filtered = transactions.filter((tx) => tx.status === 'pending');
-    setPendingTransactions(filtered.slice(0, 3)); // Limit to 3 for display
-  }, [transactions]);
+    // Filter pending transactions
+    const pendingTxs = transactions.filter((tx) => tx.status === 'pending');
+
+    // Filter pending withdrawals and normalize to Transaction interface
+    const pendingWithdrawals = withdrawals
+      .filter((wd) => wd.status === 'pending')
+      .map((wd): Transaction => ({
+        _id: wd._id,
+        companyName: 'Withdrawal', // Placeholder, as paymentAccountDetails is likely empty
+        transactionId: wd._id, // Use _id as transactionId
+        userId: wd.user,
+        status: 'pending', // Matches Transaction status
+        amount: wd.amount,
+        currencyType: 'fiat', // Default, as Withdrawal doesn’t specify
+        proofUrl: wd.brokerFeeProof || '', // Use brokerFeeProof or empty string
+        createdAt: wd.createdAt,
+        updatedAt: wd.updatedAt,
+        __v: 0, // Default for compatibility
+      }));
+
+    // Combine and limit to 3
+    const combined = [...pendingTxs, ...pendingWithdrawals].slice(0, 3);
+    setPendingTransactions(combined);
+  }, [transactions, withdrawals]);
 
   // Handle transaction actions (placeholder for actual implementation)
   const handleAction = (action: string, transactionId: string) => {

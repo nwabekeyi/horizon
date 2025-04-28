@@ -1,27 +1,35 @@
 import { Suspense, lazy } from 'react';
 import { Outlet, createBrowserRouter } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import paths, { rootPaths } from './paths';
+import { RootState } from '../store'; // Adjust path to your store
 
 // Lazy-loaded components
 const App = lazy(() => import('App'));
 const MainLayout = lazy(() => import('layouts/main-layout'));
 const AuthLayout = lazy(() => import('layouts/auth-layout'));
-const Dashboard = lazy(() => import('pages/dashboard/Dashboard')); // Only renders DashboardHome
+const Dashboard = lazy(() => import('pages/dashboard/Dashboard'));
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 const SignUp = lazy(() => import('pages/authentication/SignUp'));
 const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
 const Page404 = lazy(() => import('pages/errors/Page404'));
 const Home = lazy(() => import('pages/landingPage'));
+const WithdrawalHistory = lazy(() => import('pages/dashboard/withdrawalHistory'));
 
-// Dashboard sub-route components (lazy-loaded)
+// Dashboard sub-route components
 const NFTMarketplace = lazy(() => import('pages/dashboard/NFTMarketplace'));
-const TransactionHistory = lazy(() => import('pages/dashboard/transaction-history'));
 const ReferralProgram = lazy(() => import('pages/dashboard/referralProgram'));
 const Profile = lazy(() => import('pages/dashboard/profile'));
 const Investment = lazy(() => import('pages/dashboard/investments/index'));
 
 import PageLoader from 'components/loading/PageLoader';
 import Progress from 'components/loading/Progress';
+
+// Wrapper component to pass user from Redux
+const TransactionHistoryWrapper = () => {
+  const user = useSelector((state: RootState) => state.user.user);
+  return <WithdrawalHistory user={user} />;
+};
 
 export const routes = [
   {
@@ -35,7 +43,7 @@ export const routes = [
         path: rootPaths.root, // '/'
         element: (
           <Suspense fallback={<PageLoader />}>
-            <Home /> {/* Home is standalone */}
+            <Home />
           </Suspense>
         ),
       },
@@ -44,14 +52,14 @@ export const routes = [
         element: (
           <MainLayout>
             <Suspense fallback={<PageLoader />}>
-              <Outlet /> {/* Sub-routes will render here */}
+              <Outlet />
             </Suspense>
           </MainLayout>
         ),
         children: [
           {
-            path: '', // '/dashboard' (exact match)
-            element: <Dashboard />, // Renders DashboardHome
+            path: '', // '/dashboard'
+            element: <Dashboard />,
           },
           {
             path: 'nft-marketplace', // '/dashboard/nft-marketplace'
@@ -59,7 +67,7 @@ export const routes = [
           },
           {
             path: 'transaction-history', // '/dashboard/transaction-history'
-            element: <TransactionHistory />,
+            element: <TransactionHistoryWrapper />, // Use wrapper
           },
           {
             path: 'referral-program', // '/dashboard/referral-program'
@@ -74,13 +82,13 @@ export const routes = [
             element: <Investment />,
           },
           {
-            path: '*', // '/dashboard/*' (catch-all for unmatched sub-routes)
-            element: <Dashboard />, // Fallback to DashboardHome
+            path: '*', // '/dashboard/*'
+            element: <Dashboard />,
           },
         ],
       },
       {
-        path: rootPaths.pagesRoot, // '/pages' (optional, for other pages)
+        path: rootPaths.pagesRoot, // '/pages'
         element: (
           <MainLayout>
             <Suspense fallback={<PageLoader />}>
@@ -88,9 +96,7 @@ export const routes = [
             </Suspense>
           </MainLayout>
         ),
-        children: [
-          // Add other pages under '/pages' here if needed
-        ],
+        children: [],
       },
       {
         path: rootPaths.authRoot, // '/authentication'
@@ -115,7 +121,7 @@ export const routes = [
         ],
       },
       {
-        path: '*', // Catch-all for top-level unmatched routes
+        path: '*', // Catch-all
         element: (
           <Suspense fallback={<PageLoader />}>
             <Page404 />

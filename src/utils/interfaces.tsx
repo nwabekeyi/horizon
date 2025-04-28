@@ -1,26 +1,12 @@
 // utils/interfaces.ts
-export interface Investment {
-  _id: string;
-  amountInvested: number;
-  companyName: string;
-  currencyType: 'fiat' | 'crypto';
-  investmentDate: string; // ISO string, as provided
-  roi: number;
-  transactionId: string;
-}
 
-export interface Withdrawal {
-  _id: string;
-  amount: number;
-  createdAt: Date; // Explicitly string
-  status: 'pending' | 'failed' | 'successful';
-  bankAccount?: string; // Instead of companyName
-  type: 'withdrawal';
-}
+// Currency type for fiat and crypto currencies
+export type Currency = 'usd' | 'cad' | 'eur' | 'gbp' | 'btc' | 'eth' | 'usdt';
 
-export interface PaymentDetail {
+// Interface for Payment Account Details, including account details and currency
+export interface PaymentAccountDetails {
   type: 'fiat' | 'crypto';
-  currency: 'usd' | 'cad' | 'eur' | 'gbp' | 'btc' | 'eth' | 'usdt';
+  currency: Currency;
   accountDetails: {
     bankName?: string;
     accountNumber?: string;
@@ -30,11 +16,53 @@ export interface PaymentDetail {
   };
 }
 
+// Interface for Investment record
+export interface Investment {
+  _id: string;
+  amountInvested: number;
+  companyName: string;
+  currencyType: 'fiat' | 'crypto';
+  investmentDate: string;
+  roi: number;
+  transactionId: string;
+}
+
+// Interface for PaymentDetail used in User's payment information
+export interface PaymentDetail {
+  _id: string;
+  type: 'fiat' | 'crypto';
+  currency: Currency;
+  accountDetails: {
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+    address?: string;
+    network?: 'erc20' | 'trc20' | 'bep20' | 'polygon' | 'solana';
+  };
+}
+
+// Interface for Withdrawal with optional payment account details and currency
+export interface Withdrawal {
+  _id: string;
+  user: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'failed' | 'processing' | 'successful' | 'canceled';
+  paymentAccountDetails?: PaymentAccountDetails;
+  withdrawalPin?: string;
+  brokerFee: number;
+  brokerFeeProof: string;
+  remarks?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// TwoFA Interface for Two-Factor Authentication
 interface TwoFA {
   enabled: boolean;
   secret: string;
 }
 
+// KYC Interface for Know-Your-Customer details
 interface KYC {
   status: 'pending' | 'approved' | 'rejected';
   documentType: 'passport' | 'driver_license' | 'national_id';
@@ -43,6 +71,7 @@ interface KYC {
   addressProof?: string;
 }
 
+// User Information Interface
 export interface UserInfo {
   _id: string;
   role: string;
@@ -68,23 +97,36 @@ export interface UserInfo {
   paymentDetails: PaymentDetail[];
   twoFA: TwoFA;
   kyc?: KYC;
-  investments?: Investment[]; // Added investments array
+  investments?: Investment[];
 }
 
+// Main User interface (could be null or contain the UserInfo)
 export type User = UserInfo | null;
 
+// Transaction Interface for managing transactions
 export interface Transaction {
   _id: string;
   companyName: string;
   transactionId: string;
   userId: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'failed' | 'canceled';
   amount: number;
   currencyType: 'fiat' | 'crypto';
-  cryptoCurrency?: 'usdt' | 'btc' | 'eth';
+  cryptoCurrency?: Currency;
   transactionDetails?: string;
   proofUrl: string;
   createdAt?: Date;
   updatedAt?: Date;
   __v: number;
+}
+
+// Display Transaction Interface (for showing transactions in the UI)
+export interface DisplayTransaction {
+  _id: string;
+  amount: number;
+  createdAt: Date;
+  status: 'pending' | 'approved' | 'failed' | 'processing' | 'successful' | 'canceled';
+  companyName: string;
+  type: 'transaction' | 'withdrawal';
+  currency?: Currency;
 }

@@ -1,6 +1,6 @@
 import { Box, Card, Divider, Grid, Typography, styled } from "@mui/material";
 import { FC, MouseEvent, useState } from "react";
-import PostCard from "./PostCard";
+import PaymentCard from "./PaymentCard";
 import MoreOptions from "./MoreOptions";
 import {User} from '../../../utils/interfaces'
 import NotLoggedIn from "pages/errors/notLoggedIn";
@@ -114,11 +114,16 @@ const Profile: FC<{ user: User }> = ({ user }) => {
 
       <Grid item md={7} xs={12}>
         <Typography variant="h6" fontWeight={600} mb={2}>
-          Posts
+          Payment Accounts
         </Typography>
-        {postList.map((post) => (
-          <PostCard post={post} key={post.id} handleMore={handleMoreOpen} />
-        ))}
+          {user.paymentDetails.map((paymentDetail, index) => (
+            <PaymentCard
+              paymentDetail={paymentDetail}
+              key={index}
+              handleMore={handleMoreOpen}
+            />
+      ))}
+
 
         {/* More options menu */}
         <MoreOptions anchorEl={moreEl} handleMoreClose={handleMoreClose} />
@@ -127,18 +132,6 @@ const Profile: FC<{ user: User }> = ({ user }) => {
   );
 };
 
-// Temporary hardcoded post list (to be replaced with user-specific posts if available)
-const postList = [
-  {
-    id: 1,
-    postTitle: "Coffee and Afternoon",
-    postImage: "/static/post-image/post-1.png",
-  },
-  {
-    id: 2,
-    postTitle: "Coffee and Afternoon",
-    postImage: "",
-  },
-];
+
 
 export default Profile;

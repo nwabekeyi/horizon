@@ -25,6 +25,20 @@ echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
 const PiChart = ({ chartRef, data, ...rest }: PiChartProps) => {
   const theme = useTheme();
 
+  // Define a palette of distinct colors
+  const colorPalette = [
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.info.main,
+    theme.palette.primary.light,
+    theme.palette.secondary.light,
+    theme.palette.success.light,
+    theme.palette.warning.light,
+  ];
+
   const option = useMemo(
     () => ({
       tooltip: {
@@ -40,7 +54,8 @@ const PiChart = ({ chartRef, data, ...rest }: PiChartProps) => {
             value: item.value,
             name: item.name,
             itemStyle: {
-              color: index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main,
+              // Assign a unique color from the palette, cycling if needed
+              color: colorPalette[index % colorPalette.length],
             },
           })),
           emphasis: {

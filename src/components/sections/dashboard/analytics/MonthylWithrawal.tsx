@@ -23,7 +23,7 @@ const MonthylWithrawal: FC<Withdrawal> = ({withdrawals}) => {
       </Stack>
       <div>
         <Typography variant="body2" color="text.disabled" noWrap>
-          Spend this month
+          Withdrawal this month
         </Typography>
         <Typography mt={0.25} variant="h3">
           ${withdrawals.toFixed(2)}

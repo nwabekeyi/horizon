@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useTheme } from '@mui/material'; // Corrected import
+import { useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
@@ -11,7 +11,7 @@ import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import EChartsReactCore from 'echarts-for-react/lib/core';
 import useAnalytics from '../hook/useAnalytics';
-import { User} from 'utils/interfaces';
+import { User } from 'utils/interfaces';
 import customShadows from 'theme/shadows';
 import PiChart from './PiChart';
 import dayjs from 'dayjs';
@@ -31,7 +31,21 @@ const YourPiChart = ({ user }: YourPiChartProps) => {
   const { transactions } = useAnalytics(user);
   const [timeline, setTimeline] = useState('monthly');
   const chartRef = useRef<EChartsReactCore>(null);
-  const theme = useTheme(); // Corrected from useTheme0
+  const theme = useTheme();
+
+  // Define the same color palette as in PiChart for consistency
+  const colorPalette = [
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.info.main,
+    theme.palette.primary.light,
+    theme.palette.secondary.light,
+    theme.palette.success.light,
+    theme.palette.warning.light,
+  ];
 
   // Compute chart data based on transactions and timeline
   const chartData = useMemo(() => {
@@ -97,7 +111,8 @@ const YourPiChart = ({ user }: YourPiChartProps) => {
         value: item.value,
         name: item.name,
         itemStyle: {
-          color: index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main,
+          // Use the same color palette, cycling through colors
+          color: colorPalette[index % colorPalette.length],
         },
       }));
 
@@ -158,9 +173,7 @@ const YourPiChart = ({ user }: YourPiChartProps) => {
                 borderRadius="50%"
                 bgcolor={
                   item.visible
-                    ? index % 2 === 0
-                      ? 'primary.main'
-                      : 'secondary.main'
+                    ? colorPalette[index % colorPalette.length] // Use palette for legend
                     : 'neutral.light'
                 }
               />

@@ -4,6 +4,11 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import TransactionTable from '../../components/sections/dashboard/complex-table/TransactionTable';
 import CustomModal from '../../components/base/modal';
 import useAnalytics from '../../components/sections/dashboard/hook/useAnalytics';
@@ -11,7 +16,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from 'store';
 import { useApiRequest } from '../../hooks/useApi';
 import { ENDPOINTS } from '../../utils/endpoints';
-import { User, Withdrawal, PaymentDetail } from 'utils/interfaces';
+import { User, Withdrawal, PaymentDetail, Currency } from 'utils/interfaces';
+import dayjs from 'dayjs';
 
 interface TransactionHistoryProps {
   user: User | null;
@@ -21,9 +27,10 @@ interface DisplayTransaction {
   _id: string;
   amount: number;
   createdAt: Date;
-  status: 'pending' | 'approved' | 'failed' | 'processing' | 'successful';
+  status: 'pending' | 'approved' | 'failed' | 'processing' | 'successful' | 'canceled';
   companyName: string;
   type: 'withdrawal';
+  currency?: Currency;
 }
 
 interface WithdrawalRequestPayload {
@@ -42,11 +49,14 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
   const [searchText, setSearchText] = useState<string>('');
   const [viewModalOpen, setViewModalOpen] = useState<boolean>(false);
   const [withdrawalModalOpen, setWithdrawalModalOpen] = useState<boolean>(false);
+  const [messageModalOpen, setMessageModalOpen] = useState<boolean>(false); // New state for message modal
+  const [message, setMessage] = useState<string>(''); // Message content
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success'); // Message type
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null);
   const [selectedPaymentDetail, setSelectedPaymentDetail] = useState<string>('');
   const [withdrawalPin, setWithdrawalPin] = useState<string>('');
   const { withdrawals } = useAnalytics(user);
-  const { callApi } = useApiRequest<WithdrawalResponse, WithdrawalRequestPayload>();
+  const { error, loading, callApi } = useApiRequest<WithdrawalResponse, WithdrawalRequestPayload>();
 
   const reduxUser = useSelector((state: RootState) => state.user.user);
   const paymentDetails: PaymentDetail[] = reduxUser?.paymentDetails || [];
@@ -58,10 +68,11 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
     createdAt: wd.createdAt instanceof Date ? wd.createdAt : new Date(wd.createdAt || Date.now()),
     status: wd.status,
     companyName: wd.paymentAccountDetails
-      ? wd.paymentAccountDetails.accountDetails?.bankName || 
+      ? wd.paymentAccountDetails.accountDetails?.bankName ||
         `${wd.paymentAccountDetails.currency?.toUpperCase() || 'Unknown'} Wallet`
       : 'Unknown',
-    type: 'withdrawal',
+    type: 'withdrawal' as const,
+    currency: wd.paymentAccountDetails?.currency,
   }));
 
   const statusTotals = {
@@ -71,58 +82,93 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
     successful: allWithdrawals.filter((wd) => wd.status === 'successful').length,
   };
 
-  const filteredWithdrawals = allWithdrawals.filter((wd) =>
-    wd._id.toLowerCase().includes(searchText.toLowerCase()) ||
-    wd.companyName.toLowerCase().includes(searchText.toLowerCase()) ||
-    wd.status.toLowerCase().includes(searchText.toLowerCase())
+  const filteredWithdrawals = allWithdrawals.filter(
+    (wd) =>
+      wd._id.toLowerCase().includes(searchText.toLowerCase()) ||
+      wd.companyName.toLowerCase().includes(searchText.toLowerCase()) ||
+      wd.status.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const handleViewDetails = (id: string) => {
-    const withdrawal = withdrawals.find((wd) => wd._id === id);
+  const handleViewDetails = (id: string): void => {
+    const withdrawal = withdrawals.find((wd: Withdrawal) => wd._id === id);
     setSelectedWithdrawal(withdrawal || null);
     setViewModalOpen(true);
   };
 
-  const handleCloseViewModal = () => {
+  const handleCloseViewModal = (): void => {
     setViewModalOpen(false);
     setSelectedWithdrawal(null);
   };
 
-  const handleCancelWithdrawal = (id: string) => {
-    alert(`Withdrawal with ID ${id} has been canceled.`);
+  const handleCancelWithdrawal = (id: string): void => {
+    setMessage(`Withdrawal with ID ${id} has been canceled.`);
+    setMessageType('success'); // Treat cancellation as success for simplicity
+    setMessageModalOpen(true);
     handleCloseViewModal();
   };
 
-  const handleOpenWithdrawalModal = (id: string) => {
-    const withdrawal = withdrawals.find((wd) => wd._id === id);
+  const handleOpenWithdrawalModal = (id: string): void => {
+    const withdrawal = withdrawals.find((wd: Withdrawal) => wd._id === id);
     setSelectedWithdrawal(withdrawal || null);
     setWithdrawalModalOpen(true);
     setSelectedPaymentDetail('');
     setWithdrawalPin('');
   };
 
-  const handleCloseWithdrawalModal = () => {
+  const handleCloseWithdrawalModal = (): void => {
     setWithdrawalModalOpen(false);
     setSelectedWithdrawal(null);
     setSelectedPaymentDetail('');
     setWithdrawalPin('');
   };
 
-  const handleSubmitWithdrawal = async () => {
+  const handleCloseMessageModal = (): void => {
+    setMessageModalOpen(false);
+    setMessage('');
+    setMessageType('success');
+  };
+
+  const handleSubmitWithdrawal = async (): Promise<void> => {
     if (!selectedWithdrawal || !userId || !selectedPaymentDetail || !withdrawalPin) {
-      alert('Please select a payment account and enter a withdrawal pin.');
+      setMessage('Please select a payment account and enter a withdrawal pin.');
+      setMessageType('error');
+      setMessageModalOpen(true);
       return;
     }
 
     if (!/^\d{4}$/.test(withdrawalPin)) {
-      alert('Withdrawal PIN must be a 4-digit number.');
+      setMessage('Withdrawal PIN must be a 4-digit number.');
+      setMessageType('error');
+      setMessageModalOpen(true);
       return;
     }
 
     const selectedDetail = paymentDetails.find((detail) => detail._id === selectedPaymentDetail);
     if (!selectedDetail) {
-      alert('Selected payment detail not found.');
+      setMessage('Selected payment detail not found.');
+      setMessageType('error');
+      setMessageModalOpen(true);
       return;
+    }
+
+    if (selectedDetail.type === 'fiat') {
+      if (
+        !selectedDetail.accountDetails.bankName ||
+        !selectedDetail.accountDetails.accountNumber ||
+        !selectedDetail.accountDetails.accountName
+      ) {
+        setMessage('Fiat payment details must include bank name, account number, and account name.');
+        setMessageType('error');
+        setMessageModalOpen(true);
+        return;
+      }
+    } else if (selectedDetail.type === 'crypto') {
+      if (!selectedDetail.accountDetails.address) {
+        setMessage('Crypto payment details must include a wallet address.');
+        setMessageType('error');
+        setMessageModalOpen(true);
+        return;
+      }
     }
 
     const payload: WithdrawalRequestPayload = {
@@ -138,7 +184,9 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
         method: 'POST',
         body: payload,
       });
-      alert(response.message);
+      setMessage(response.message); // e.g., "Withdrawal is now processing."
+      setMessageType('success');
+      setMessageModalOpen(true);
       handleCloseWithdrawalModal();
     } catch (err) {
       const errorMessage =
@@ -148,7 +196,9 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
         err.status === 404 ? 'Withdrawal not found.' :
         err.status === 503 ? 'Database error. Please try again later.' :
         'Failed to process withdrawal.';
-      alert(`Error: ${errorMessage}`);
+      setMessage(errorMessage);
+      setMessageType('error');
+      setMessageModalOpen(true);
     }
   };
 
@@ -196,10 +246,34 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
       />
 
       <Stack direction="row" spacing={2} mb={2}>
-        <Chip label={`Pending: ${statusTotals.pending}`} color="warning" />
-        <Chip label={`Processing: ${statusTotals.processing}`} color="info" />
-        <Chip label={`Approved: ${statusTotals.approved}`} color="primary" />
-        <Chip label={`Successful: ${statusTotals.successful}`} color="success" />
+        <Chip
+          label={`Pending: ${statusTotals.pending}`}
+          color="warning"
+          variant="filled"
+          icon={<span style={{ fontSize: 18 }}>⏳</span>}
+          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
+        />
+        <Chip
+          label={`Processing: ${statusTotals.processing}`}
+          color="info"
+          variant="filled"
+          icon={<span style={{ fontSize: 18 }}>⚙️</span>}
+          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
+        />
+        <Chip
+          label={`Approved: ${statusTotals.approved}`}
+          color="primary"
+          variant="filled"
+          icon={<span style={{ fontSize: 18 }}>✅</span>}
+          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
+        />
+        <Chip
+          label={`Successful: ${statusTotals.successful}`}
+          color="success"
+          variant="filled"
+          icon={<span style={{ fontSize: 18 }}>🎉</span>}
+          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
+        />
       </Stack>
 
       <Box height={500}>
@@ -221,7 +295,7 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
         onCancel={handleCloseViewModal}
         noConfirm
       >
-        {selectedWithdrawal && (
+        {selectedWithdrawal ? (
           <Stack spacing={2} sx={{ py: 2 }}>
             <Typography variant="body1">
               <strong>ID:</strong> {selectedWithdrawal._id}
@@ -230,9 +304,27 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
               <strong>Amount:</strong> {selectedWithdrawal.amount}
             </Typography>
             <Typography variant="body1">
-              <strong>Status:</strong> {selectedWithdrawal.status}
+              <strong>Status:</strong>{' '}
+              {selectedWithdrawal.status.charAt(0).toUpperCase() + selectedWithdrawal.status.slice(1)}
             </Typography>
+            <Typography variant="body1">
+              <strong>Date:</strong>{' '}
+              {dayjs(selectedWithdrawal.createdAt).format('MMM DD, YYYY HH:mm')}
+            </Typography>
+            {actions(selectedWithdrawal).map((action, index) => (
+              <Button
+                key={index}
+                variant="contained"
+                color={action.label === 'Cancel Withdrawal' ? 'error' : 'primary'}
+                onClick={action.onClick}
+                sx={{ mt: 2 }}
+              >
+                {action.label}
+              </Button>
+            ))}
           </Stack>
+        ) : (
+          <Typography>No details available</Typography>
         )}
       </CustomModal>
 
@@ -242,10 +334,81 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
         title="Make Withdrawal"
         onCancel={handleCloseWithdrawalModal}
         onConfirm={handleSubmitWithdrawal}
+        noConfirm={false}
       >
-        <Stack spacing={2} sx={{ py: 2 }}>
-          {/* Add components for selecting payment details and PIN */}
-        </Stack>
+        {selectedWithdrawal ? (
+          <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <Typography variant="body1">
+              <strong>Withdrawal ID:</strong> {selectedWithdrawal._id}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Amount:</strong> {selectedWithdrawal.amount}
+            </Typography>
+            <FormControl fullWidth>
+              <InputLabel id="payment-detail-label">Select Payment Account</InputLabel>
+              <Select
+                labelId="payment-detail-label"
+                value={selectedPaymentDetail}
+                label="Select Payment Account"
+                onChange={(e) => setSelectedPaymentDetail(e.target.value)}
+                disabled={paymentDetails.length === 0}
+              >
+                {paymentDetails.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    No payment accounts available
+                  </MenuItem>
+                ) : (
+                  paymentDetails.map((detail) => (
+                    <MenuItem key={detail._id} value={detail._id}>
+                      {detail.type === 'fiat'
+                        ? `${detail.accountDetails.bankName || 'Unknown Bank'} - ${
+                            detail.accountDetails.accountNumber || 'Unknown'
+                          }`
+                        : `${detail.currency.toUpperCase()} Wallet - ${
+                            detail.accountDetails.address || 'Unknown Address'
+                          }`}
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Withdrawal Pin"
+              type="password"
+              value={withdrawalPin}
+              onChange={(e) => setWithdrawalPin(e.target.value)}
+              fullWidth
+              required
+            />
+            {error && (
+              <Typography color="error" variant="body2">
+                {error.message}
+              </Typography>
+            )}
+            {loading && (
+              <Typography variant="body2">Submitting withdrawal request...</Typography>
+            )}
+          </Box>
+        ) : (
+          <Typography>No withdrawal selected</Typography>
+        )}
+      </CustomModal>
+
+      {/* Message Modal */}
+      <CustomModal
+        open={messageModalOpen}
+        title={messageType === 'success' ? 'Success' : 'Error'}
+        onCancel={handleCloseMessageModal}
+        onConfirm={handleCloseMessageModal}
+        noConfirm={false}
+      >
+        <Typography
+          variant="body1"
+          color={messageType === 'success' ? 'success.main' : 'error.main'}
+          sx={{ py: 2 }}
+        >
+          {message}
+        </Typography>
       </CustomModal>
     </Box>
   );

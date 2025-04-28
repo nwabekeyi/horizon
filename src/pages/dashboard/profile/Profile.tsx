@@ -114,7 +114,7 @@ const Profile: FC<{ user: User }> = ({ user }) => {
 
       <Grid item md={7} xs={12}>
         <Typography variant="h6" fontWeight={600} mb={2}>
-          Posts
+          Payment Accounts
         </Typography>
           {user.paymentDetails.map((paymentDetail, index) => (
             <PaymentCard

@@ -90,7 +90,7 @@ const AllTransactions = ({ user }: { user: User | null }) => {
       <Box mt={{ xs: 1.25, sm: 1 }} height={313}>
         <TransactionTable
           searchText={searchText}
-          itemsPerPage={10}
+          itemsPerPage={5}
           transactions={combinedTransactions}
         />
       </Box>

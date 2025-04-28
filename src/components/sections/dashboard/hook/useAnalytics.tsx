@@ -70,7 +70,7 @@ type Action =
   | { type: 'SET_ACCOUNT_BALANCE'; payload: number }
   | { type: 'SET_INVESTED_COMPANIES'; payload: string[] }
   | { type: 'SET_PENDING_TRANSACTIONS'; payload: Transaction[] }
-  | { type: 'SET_WITHDRAWALS'; payload: Withdrawal[] }
+  | { type: 'SET_WITHDRAWALS'; payload: Withdrawal[] } // Fix: Changed Transaction[] to Withdrawal[]
   | { type: 'SET_TOTAL_WITHDRAWN_THIS_MONTH'; payload: number }
   | { type: 'RESET' };
 
@@ -142,13 +142,6 @@ const useAnalytics = (user: User | null): AnalyticsState => {
     dispatch({ type: 'SET_ROI', payload: user.totalROI ?? 0 });
     dispatch({ type: 'SET_ACCOUNT_BALANCE', payload: user.accountBalance ?? 0 });
 
-    // Extract unique company names from user.investments
-    const investedCompanies = Array.isArray(user.investments)
-      ? [...new Set(user.investments.map((investment) => investment.companyName))]
-      : [];
-    console.log('Invested companies:', investedCompanies);
-    dispatch({ type: 'SET_INVESTED_COMPANIES', payload: investedCompanies });
-
     const fetchData = async () => {
       try {
         // Fetch transactions and withdrawals in parallel
@@ -212,6 +205,17 @@ const useAnalytics = (user: User | null): AnalyticsState => {
 
         dispatch({ type: 'SET_SPENT_THIS_MONTH', payload: spentThisMonth });
 
+        // Extract unique company names from completed transactions
+        const investedCompanies = [
+          ...new Set(
+            transactions
+              .filter((tx) => tx.status === 'completed')
+              .map((tx) => tx.companyName)
+          ),
+        ];
+        console.log('Invested companies:', investedCompanies);
+        dispatch({ type: 'SET_INVESTED_COMPANIES', payload: investedCompanies });
+
         // Process withdrawals
         const withdrawalsArray = Array.isArray(
           (withdrawalResponse as WithdrawalApiResponse)?.withdrawals
@@ -250,6 +254,7 @@ const useAnalytics = (user: User | null): AnalyticsState => {
         dispatch({ type: 'SET_TRANSACTIONS', payload: [] });
         dispatch({ type: 'SET_SPENT_THIS_MONTH', payload: 0 });
         dispatch({ type: 'SET_PENDING_TRANSACTIONS', payload: [] });
+        dispatch({ type: 'SET_INVESTED_COMPANIES', payload: [] });
         dispatch({ type: 'SET_WITHDRAWALS', payload: [] });
         dispatch({ type: 'SET_TOTAL_WITHDRAWN_THIS_MONTH', payload: 0 });
       }

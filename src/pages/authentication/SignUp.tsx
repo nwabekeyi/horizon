@@ -252,7 +252,7 @@ const SignUp = () => {
             />
           }
         >
-          Back to dashboard
+          Back to home page
         </Button>
       </Box>
 

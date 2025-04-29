@@ -11,7 +11,7 @@ import TextField from '@mui/material/TextField';
 import IconifyIcon from 'components/base/IconifyIcon';
 import { useApiRequest } from '../../hooks/useApi'; // Reusable API hook
 import Progress from '../../components/loading/Progress';
-import CustomModal from '../../components/base/modal';
+import CustomModal, {ChildrenBox} from '../../components/base/modal';
 import { ENDPOINTS } from 'utils/endpoints';
 import Footer from 'layouts/main-layout/footer';
 
@@ -215,18 +215,21 @@ const PasswordReset = () => {
           onCancel={handleModalClose}
           noConfirm={true}
         >
-          <Typography variant="body1">
-            Your password has been successfully reset! Would you like to log in now?
-          </Typography>
-          <Button
-            component={Link}
-            href="/authentication/sign-in"
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-          >
-            Go to Login
-          </Button>
+          <ChildrenBox>
+            <Typography variant="body1">
+              Your password has been successfully reset! Would you like to log in now?
+            </Typography>
+            <Button
+              component={Link}
+              href="/authentication/sign-in"
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+            >
+              Go to Login
+            </Button>
+          </ChildrenBox>
+        
         </CustomModal>
       </Box>
 

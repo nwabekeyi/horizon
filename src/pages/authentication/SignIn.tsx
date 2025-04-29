@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -13,12 +13,12 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
 import IconifyIcon from 'components/base/IconifyIcon';
-import { loginUser } from 'store/slices/userSlice'; // Import loginUser thunk
+import { loginUser } from 'store/slices/userSlice';
 import paths from 'routes/paths';
-import { AppDispatch } from 'store'; // Import AppDispatch to type dispatch
-import { useApiRequest } from '../../hooks/useApi'; // Adjust path
-import Progress from '../../components/loading/Progress'; // Adjust path
-import CustomModal from '../../components/base/modal'; // Adjust path
+import { AppDispatch } from 'store';
+import { useApiRequest } from '../../hooks/useApi';
+import Progress from '../../components/loading/Progress';
+import CustomModal from '../../components/base/modal';
 import { ENDPOINTS } from 'utils/endpoints';
 import Footer from 'layouts/main-layout/footer';
 
@@ -38,14 +38,14 @@ const SignIn = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [user, setUser] = useState<User>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [forgotPassword, setForgotPassword] = useState(false); // New state for forgot password
-  const [error, setError] = useState<string | null>(null); // For handling login/forgot password errors
-  const [modalOpen, setModalOpen] = useState(false); // For success modal
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
   const { error: apiError, callApi } = useApiRequest<ForgotPasswordResponse, ForgotPasswordRequestBody>();
-console.log(loading)
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
     setError(null);
@@ -56,27 +56,21 @@ console.log(loading)
     setLoading(true);
 
     if (forgotPassword) {
-      // Forgot Password submission
-      const body: ForgotPasswordRequestBody = {
-        email: user.email,
-      };
-
+      const body: ForgotPasswordRequestBody = { email: user.email };
       try {
         await callApi({
           url: ENDPOINTS.FORGETPASSWORD,
           method: 'POST',
           body,
         });
-        setModalOpen(true); // Show success modal
+        setModalOpen(true);
       } catch (err) {
         setLoading(false);
         console.error('API Error:', err);
         setError('Failed to request password reset. Please try again.');
       }
     } else {
-      // Sign-in submission
       const action = await dispatch(loginUser({ email: user.email, password: user.password }));
-
       if (loginUser.fulfilled.match(action)) {
         navigate(paths.dashboard);
       } else {
@@ -86,14 +80,28 @@ console.log(loading)
     }
   };
 
-  const handleModalClose = () => {
-    setModalOpen(false);
-    if (forgotPassword) setForgotPassword(false); // Reset to sign-in form after forgot password success
+  // Handle Enter key press on password field
+  const handlePasswordKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !forgotPassword) {
+      e.preventDefault(); // Prevent default Enter behavior
+      const form = e.currentTarget.form; // Get the parent form
+      if (form) {
+        form.requestSubmit(); // Trigger form submission
+      }
+    }
   };
 
-  // Show progress loader while API call is pending
+  const handleModalClose = () => {
+    setModalOpen(false);
+    if (forgotPassword) setForgotPassword(false);
+  };
+
   if (loading) {
-    return <Box sx={{display: 'grid', placeContent: 'center', width: '100%' }}><Progress /></Box> ;
+    return (
+      <Box sx={{ display: 'grid', placeContent: 'center', width: '100%' }}>
+        <Progress />
+      </Box>
+    );
   }
 
   return (
@@ -194,6 +202,7 @@ console.log(loading)
                 type={showPassword ? 'text' : 'password'}
                 value={user.password}
                 onChange={handleInputChange}
+                onKeyDown={handlePasswordKeyDown} // Add keydown handler
                 variant="filled"
                 placeholder="Min. 8 characters"
                 autoComplete="current-password"
@@ -279,7 +288,6 @@ console.log(loading)
           </Typography>
         )}
 
-        {/* Success Modal */}
         <CustomModal
           open={modalOpen}
           title="Password Reset Requested"
@@ -292,7 +300,7 @@ console.log(loading)
         </CustomModal>
       </Box>
 
-     <Footer />
+      <Footer />
     </Stack>
   );
 };

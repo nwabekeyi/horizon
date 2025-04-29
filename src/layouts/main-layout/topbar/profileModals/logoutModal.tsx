@@ -1,4 +1,7 @@
-import CustomModal from '../../../../components/base/modal'; // Adjust path
+import { useDispatch } from 'react-redux';
+import CustomModal from '../../../../components/base/modal';
+import { logout } from 'store/slices/userSlice';
+import type { AppDispatch } from 'store';
 
 interface ModalProps {
   open: boolean;
@@ -6,9 +9,11 @@ interface ModalProps {
 }
 
 export const LogoutModal = ({ open, handleClose }: ModalProps) => {
+  const dispatch = useDispatch<AppDispatch>();
+
   const handleLogout = () => {
-    console.log('Logging out...');
-    handleClose();
+    dispatch(logout());
+    handleClose(); // optional, depending on if modal auto-closes on redirect
   };
 
   return (

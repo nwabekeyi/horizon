@@ -8,6 +8,29 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { Box } from "@mui/material";
+import { ReactNode } from "react";
+
+interface ChildrenBoxProps {
+  children: ReactNode;
+}
+
+export const ChildrenBox = ({ children }: ChildrenBoxProps) => {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        justifyContent: 'center',
+        mt: 2
+      }}
+    >
+      {children}
+    </Box>
+  );
+};
+
 
 interface CustomModalProps {
   open: boolean;
@@ -50,5 +73,6 @@ const CustomModal: React.FC<CustomModalProps> = ({
     </Dialog>
   );
 };
+
 
 export default CustomModal;

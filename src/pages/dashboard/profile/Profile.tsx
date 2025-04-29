@@ -1,5 +1,5 @@
 import { Box, Card, Divider, Grid, Typography, styled } from "@mui/material";
-import { FC, MouseEvent, useState } from "react";
+import { FC, useState } from "react";
 import PaymentCard from "./PaymentCard";
 import MoreOptions from "./MoreOptions";
 import {User} from '../../../utils/interfaces'
@@ -21,11 +21,6 @@ const InfoRow = styled(Box)(() => ({
 // Profile component
 const Profile: FC<{ user: User }> = ({ user }) => {
   const [moreEl, setMoreEl] = useState<null | HTMLElement>(null);
-
-  const handleMoreOpen = (event: MouseEvent<HTMLButtonElement>) => {
-    setMoreEl(event.currentTarget);
-  };
-
 
 
   const handleMoreClose = () => setMoreEl(null);
@@ -116,13 +111,14 @@ const Profile: FC<{ user: User }> = ({ user }) => {
         <Typography variant="h6" fontWeight={600} mb={2}>
           Payment Accounts
         </Typography>
-          {user.paymentDetails.map((paymentDetail, index) => (
-            <PaymentCard
-              paymentDetail={paymentDetail}
-              key={index}
-              handleMore={handleMoreOpen}
-            />
-      ))}
+        {user.paymentDetails.map((paymentDetail, index) => (
+          <PaymentCard
+            key={paymentDetail._id || `${user._id}-payment-${index}`}
+            paymentDetail={paymentDetail}
+            userId={user._id}
+          />
+        ))}
+
 
 
         {/* More options menu */}

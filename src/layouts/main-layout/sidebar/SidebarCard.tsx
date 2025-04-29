@@ -22,7 +22,7 @@ const Logo = () => {
         transform: 'translate(-50%, -50%)',
       })}
     >
-      <Image src={HorizonLogo} sx={{ width: 60, height: 40 }} />
+      <Image src={HorizonLogo} sx={{ width: 65, height: 40 }} />
     </Stack>
   );
 };
@@ -44,7 +44,7 @@ const SidebarCard = () => {
       })}
     >
       <Logo />
-      <Button sx={{ color: 'info.lighter', fontWeight: 700 }}>Upgrade to Income</Button>
+      <Button sx={{ color: 'info.lighter', fontWeight: 700 }}>Upgrade your Income</Button>
       <Typography variant="body2" color="info.darker" lineHeight={1.75}>
         make your dream a reality <br />
         invest and earn

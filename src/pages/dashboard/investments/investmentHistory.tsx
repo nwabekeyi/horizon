@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
-import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TransactionTable from '../../../components/sections/dashboard/complex-table/TransactionTable';
-import CustomModal from '../../../components/base/modal';
+import CustomModal, { ChildrenBox } from '../../../components/base/modal';
 import useAnalytics from '../../../components/sections/dashboard/hook/useAnalytics';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store';
@@ -55,23 +53,15 @@ const InvestmentHistory = () => {
     _id: tx._id,
     amount: tx.amount,
     createdAt: tx.createdAt instanceof Date ? tx.createdAt : new Date(tx.createdAt || Date.now()),
-    // Fix: Explicitly map Transaction statuses to DisplayTransaction statuses
     status:
       tx.status === 'completed' ? 'successful' :
       tx.status === 'pending' ? 'pending' :
       tx.status === 'failed' ? 'failed' :
-      'canceled', // Maps 'canceled' to 'canceled'
+      'canceled',
     companyName: tx.companyName || 'Unknown',
     type: 'transaction' as const,
     currency: tx.cryptoCurrency || (tx.currencyType === 'fiat' ? 'usd' : undefined),
   }));
-
-  const statusTotals = {
-    pending: allTransactions.filter((tx) => tx.status === 'pending').length,
-    successful: allTransactions.filter((tx) => tx.status === 'successful').length,
-    failed: allTransactions.filter((tx) => tx.status === 'failed').length,
-    canceled: allTransactions.filter((tx) => tx.status === 'canceled').length,
-  };
 
   const filteredTransactions = allTransactions.filter(
     (tx) =>
@@ -168,7 +158,6 @@ const InvestmentHistory = () => {
       transactionId: selectedTransaction._id,
       amount: editAmount,
       currencyType: editCurrencyType,
-      // Fix: Ensure cryptoCurrency is Currency | undefined
       cryptoCurrency: editCurrencyType === 'crypto' ? editCryptoCurrency || undefined : undefined,
       transactionDetails: editTransactionDetails || undefined,
     };
@@ -238,37 +227,6 @@ const InvestmentHistory = () => {
         sx={{ mb: 3, maxWidth: 400 }}
       />
 
-      <Stack direction="row" spacing={2} mb={2}>
-        <Chip
-          label={`Pending: ${statusTotals.pending}`}
-          color="warning"
-          variant="filled"
-          icon={<span style={{ fontSize: 18 }}>⏳</span>}
-          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
-        />
-        <Chip
-          label={`Successful: ${statusTotals.successful}`}
-          color="success"
-          variant="filled"
-          icon={<span style={{ fontSize: 18 }}>🎉</span>}
-          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
-        />
-        <Chip
-          label={`Failed: ${statusTotals.failed}`}
-          color="error"
-          variant="filled"
-          icon={<span style={{ fontSize: 18 }}>❌</span>}
-          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
-        />
-        <Chip
-          label={`Canceled: ${statusTotals.canceled}`}
-          color="default"
-          variant="filled"
-          icon={<span style={{ fontSize: 18 }}>🚫</span>}
-          sx={{ borderRadius: '16px', fontWeight: 'bold' }}
-        />
-      </Stack>
-
       <Box height={500}>
         <TransactionTable
           searchText={searchText}
@@ -289,7 +247,7 @@ const InvestmentHistory = () => {
         noConfirm
       >
         {selectedTransaction ? (
-          <Stack spacing={2} sx={{ py: 2 }}>
+          <ChildrenBox>
             <Typography variant="body1">
               <strong>ID:</strong> {selectedTransaction._id}
             </Typography>
@@ -329,7 +287,7 @@ const InvestmentHistory = () => {
                 {action.label}
               </Button>
             ))}
-          </Stack>
+          </ChildrenBox>
         ) : (
           <Typography>No details available</Typography>
         )}

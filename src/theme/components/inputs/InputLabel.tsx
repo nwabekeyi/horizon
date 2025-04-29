@@ -1,4 +1,4 @@
-import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
+import { Theme } from '@mui/material/styles';
 import { Components } from '@mui/material/styles';
 
 const InputLabel: Components<Omit<Theme, 'components'>>['MuiInputLabel'] = {
@@ -13,6 +13,7 @@ const InputLabel: Components<Omit<Theme, 'components'>>['MuiInputLabel'] = {
       color: theme.palette.text.primary,
       transform: 'none',
       fontWeight: 600,
+      marginBottom: theme.spacing(5), // added padding bottom
     }),
   },
 };

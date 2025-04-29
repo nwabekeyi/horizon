@@ -41,6 +41,7 @@ import CardContent from './components/cards/CardContent';
 import DateCalendar from './components/date-picker/DateCalendar';
 import InputLabel from './components/inputs/InputLabel';
 import Divider from './components/data-display/Divider';
+import FormControl from './components/layout/FormControl';
 
 // Augment the MUI theme to include info in palette
 declare module '@mui/material/styles' {
@@ -71,6 +72,7 @@ export const theme = createTheme({
     },
   },
   components: {
+    MuiFormControl: FormControl,
     MuiStack: Stack,
     MuiPaper: Paper,
     MuiButton: Button,

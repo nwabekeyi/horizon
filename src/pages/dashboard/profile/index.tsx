@@ -7,7 +7,6 @@ import {
   Tab,
   Typography,
 } from "@mui/material";
-import SearchInput from "pages/dashboard/profile/SearchInput";
 import UkoAvatar from "pages/dashboard/profile/UkoAvatar";
 import InvestmentCard from "pages/dashboard/profile/InvestmentCard";
 import Account from "pages/dashboard/profile/Account";
@@ -134,9 +133,6 @@ const UserProfile: FC = () => {
           </StyledTabPanel>
 
           <StyledTabPanel value="3">
-            <Typography variant="h6">Account settings</Typography>
-            <SearchInput placeholder="Search Friends..." sx={{ my: 2 }} />
-
                 <Grid item lg={4} sm={6} xs={12}>
                   <Account user={user} />
                 </Grid>

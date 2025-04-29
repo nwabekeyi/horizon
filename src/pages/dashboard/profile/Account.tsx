@@ -11,7 +11,7 @@ import {
   InputLabel,
 } from "@mui/material";
 import { FC, useReducer } from "react";
-import { FaEye } from "react-icons/fa";
+import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import CustomModal from "components/base/modal"; // Adjust path to your CustomModal component
 import { User, PaymentDetail } from "utils/interfaces"; // Import existing User and PaymentDetail interfaces
 import { useApiRequest } from "hooks/useApi"; // Import the useApiRequest hook
@@ -39,6 +39,12 @@ interface PaymentDetailResponse {
   paymentDetail?: PaymentDetail;
 }
 
+interface DeletePaymentDetailResponse {
+  success: boolean;
+  message: string;
+  paymentDetail?: PaymentDetail;
+}
+
 // Component props
 interface AccountProps {
   user: User | null; // Allow null for user
@@ -50,6 +56,7 @@ interface State {
   isKycModalOpen: boolean;
   isTwoFAModalOpen: boolean;
   isRecoveryEmailModalOpen: boolean;
+  isDeleteModalOpen: boolean; // New state for delete confirmation modal
   paymentType: "fiat" | "crypto";
   paymentCurrency: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "";
   bankName: string;
@@ -67,6 +74,8 @@ interface State {
   twoFAError: string;
   recoveryEmail: string;
   recoveryEmailError: string;
+  editingPaymentDetail: PaymentDetail | null; // Track the payment detail being edited
+  deletingPaymentDetailId: string | null; // Track the payment detail to be deleted
 }
 
 // Action types
@@ -75,6 +84,7 @@ type Action =
   | { type: "SET_KYC_MODAL_OPEN"; payload: boolean }
   | { type: "SET_TWO_FA_MODAL_OPEN"; payload: boolean }
   | { type: "SET_RECOVERY_EMAIL_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_DELETE_MODAL_OPEN"; payload: boolean } // New action for delete modal
   | { type: "SET_PAYMENT_TYPE"; payload: "fiat" | "crypto" }
   | { type: "SET_PAYMENT_CURRENCY"; payload: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "" }
   | { type: "SET_BANK_NAME"; payload: string }
@@ -92,6 +102,8 @@ type Action =
   | { type: "SET_TWO_FA_ERROR"; payload: string }
   | { type: "SET_RECOVERY_EMAIL"; payload: string }
   | { type: "SET_RECOVERY_EMAIL_ERROR"; payload: string }
+  | { type: "SET_EDITING_PAYMENT_DETAIL"; payload: PaymentDetail | null }
+  | { type: "SET_DELETING_PAYMENT_DETAIL_ID"; payload: string | null } // New action for delete ID
   | { type: "RESET_PAYMENT_FORM" }
   | { type: "RESET_KYC_FORM" }
   | { type: "RESET_TWO_FA_FORM" }
@@ -103,6 +115,7 @@ const initialState: State = {
   isKycModalOpen: false,
   isTwoFAModalOpen: false,
   isRecoveryEmailModalOpen: false,
+  isDeleteModalOpen: false, // Initialize delete modal state
   paymentType: "fiat",
   paymentCurrency: "",
   bankName: "",
@@ -120,6 +133,8 @@ const initialState: State = {
   twoFAError: "",
   recoveryEmail: "",
   recoveryEmailError: "",
+  editingPaymentDetail: null,
+  deletingPaymentDetailId: null, // Initialize deleting ID
 };
 
 // Reducer function
@@ -133,6 +148,8 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, isTwoFAModalOpen: action.payload };
     case "SET_RECOVERY_EMAIL_MODAL_OPEN":
       return { ...state, isRecoveryEmailModalOpen: action.payload };
+    case "SET_DELETE_MODAL_OPEN":
+      return { ...state, isDeleteModalOpen: action.payload };
     case "SET_PAYMENT_TYPE":
       return { ...state, paymentType: action.payload };
     case "SET_PAYMENT_CURRENCY":
@@ -167,6 +184,10 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, recoveryEmail: action.payload };
     case "SET_RECOVERY_EMAIL_ERROR":
       return { ...state, recoveryEmailError: action.payload };
+    case "SET_EDITING_PAYMENT_DETAIL":
+      return { ...state, editingPaymentDetail: action.payload };
+    case "SET_DELETING_PAYMENT_DETAIL_ID":
+      return { ...state, deletingPaymentDetailId: action.payload };
     case "RESET_PAYMENT_FORM":
       return {
         ...state,
@@ -178,6 +199,7 @@ const reducer = (state: State, action: Action): State => {
         cryptoAddress: "",
         network: "",
         paymentError: "",
+        editingPaymentDetail: null,
       };
     case "RESET_KYC_FORM":
       return {
@@ -213,7 +235,62 @@ const Account: FC<AccountProps> = ({ user }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // API hook for payment details
-  const { callApi, loading, error: apiError } = useApiRequest<PaymentDetailResponse, PaymentDetailPayload>();
+  const { callApi, loading, error: apiError } = useApiRequest<
+    PaymentDetailResponse | DeletePaymentDetailResponse,
+    PaymentDetailPayload
+  >();
+
+  // Pre-fill payment modal when editing
+  const handleEditPaymentDetail = (detail: PaymentDetail) => {
+    dispatch({ type: "SET_EDITING_PAYMENT_DETAIL", payload: detail });
+    dispatch({ type: "SET_PAYMENT_TYPE", payload: detail.type });
+    dispatch({ type: "SET_PAYMENT_CURRENCY", payload: detail.currency });
+    if (detail.type === "fiat" && detail.accountDetails) {
+      dispatch({ type: "SET_BANK_NAME", payload: detail.accountDetails.bankName || "" });
+      dispatch({ type: "SET_ACCOUNT_NUMBER", payload: detail.accountDetails.accountNumber || "" });
+      dispatch({ type: "SET_ACCOUNT_NAME", payload: detail.accountDetails.accountName || "" });
+    } else if (detail.type === "crypto" && detail.accountDetails) {
+      dispatch({ type: "SET_CRYPTO_ADDRESS", payload: detail.accountDetails.address || "" });
+      dispatch({ type: "SET_NETWORK", payload: detail.accountDetails.network || "" });
+    }
+    dispatch({ type: "SET_PAYMENT_MODAL_OPEN", payload: true });
+  };
+
+  // Open delete confirmation modal
+  const handleOpenDeleteModal = (paymentDetailId: string) => {
+    dispatch({ type: "SET_DELETING_PAYMENT_DETAIL_ID", payload: paymentDetailId });
+    dispatch({ type: "SET_DELETE_MODAL_OPEN", payload: true });
+  };
+
+  // Close delete confirmation modal
+  const handleCloseDeleteModal = () => {
+    dispatch({ type: "SET_DELETE_MODAL_OPEN", payload: false });
+    dispatch({ type: "SET_DELETING_PAYMENT_DETAIL_ID", payload: null });
+  };
+
+  // Delete payment detail
+  const handleDeletePaymentDetail = async () => {
+    if (!state.deletingPaymentDetailId) return;
+    try {
+      const response = await callApi({
+        url: `${ENDPOINTS.PAYMENT_DETAILS}/delete/${state.deletingPaymentDetailId}`,
+        method: "DELETE",
+      });
+      if (response.success) {
+        // Update Redux store (assuming a deletePaymentDetail action exists)
+        reduxDispatch({
+          type: "user/deletePaymentDetail",
+          payload: state.deletingPaymentDetailId,
+        });
+        handleCloseDeleteModal();
+      } else {
+        dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to delete payment detail" });
+      }
+    } catch (err: unknown) {
+      const errorMessage = apiError?.message || "Failed to delete payment detail";
+      dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
+    }
+  };
 
   // Modal handlers
   const handlePaymentModalOpen = () => dispatch({ type: "SET_PAYMENT_MODAL_OPEN", payload: true });
@@ -290,7 +367,6 @@ const Account: FC<AccountProps> = ({ user }) => {
       dispatch({ type: "SET_RECOVERY_EMAIL_ERROR", payload: "Please enter a recovery email" });
       return false;
     }
-    // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(state.recoveryEmail)) {
       dispatch({ type: "SET_RECOVERY_EMAIL_ERROR", payload: "Please enter a valid email address" });
@@ -328,19 +404,25 @@ const Account: FC<AccountProps> = ({ user }) => {
     };
 
     try {
+      const isEditing = !!state.editingPaymentDetail;
+      const url = isEditing
+        ? `${ENDPOINTS.PAYMENT_DETAILS}/update/${state.editingPaymentDetail?._id}`
+        : ENDPOINTS.addPaymentDetails;
+      const method = isEditing ? "PUT" : "POST";
+
       const response = await callApi({
-        url: ENDPOINTS.addPaymentDetails,
-        method: "POST",
+        url,
+        method,
         body: payload,
       });
       if (response.success && response.paymentDetail) {
         reduxDispatch(addPaymentDetail(response.paymentDetail));
         handlePaymentModalClose();
       } else {
-        dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to add payment details" });
+        dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to save payment details" });
       }
     } catch (err: unknown) {
-      const errorMessage = apiError?.message || "Failed to add payment details";
+      const errorMessage = apiError?.message || "Failed to save payment details";
       dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
     }
   };
@@ -369,45 +451,97 @@ const Account: FC<AccountProps> = ({ user }) => {
   };
 
   return (
-    <Card sx={{ padding: 3, display: "flex", flexWrap: "wrap", gap: 4 }}>
-      {/* First Row: Payment Details and Two-Factor Authentication */}
+    <Card
+      sx={{
+        padding: 3,
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+        borderRadius: 2,
+        backgroundColor: "background.paper",
+      }}
+    >
       {/* Payment Details */}
       <Box
-        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+        sx={{
+          flex: { xs: "1 1 100%", md: "1 1 45%" },
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          textAlign: "left",
+        }}
       >
-        <Typography variant="h6">Payment Details</Typography>
+        <Typography variant="h6" fontWeight="medium" color="text.primary">
+          Payment Details
+        </Typography>
         {user && user.paymentDetails && user.paymentDetails.length > 0 ? (
           user.paymentDetails.map((detail, index) => (
-            <Box key={index} sx={{ p: 2, border: "1px solid", borderColor: "grey.200", borderRadius: 1 }}>
-              <Typography variant="body2">
-                <strong>Type:</strong> {detail.type ? detail.type.charAt(0).toUpperCase() + detail.type.slice(1) : "N/A"}
+            <Box
+              key={index}
+              sx={{
+                p: 2,
+                border: "1px solid",
+                borderColor: "grey.200",
+                borderRadius: 1,
+                backgroundColor: "background.default",
+                position: "relative",
+              }}
+            >
+              <Box sx={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 1 }}>
+                <IconButton
+                  onClick={() => handleEditPaymentDetail(detail)}
+                  aria-label="Edit payment detail"
+                  sx={{
+                    bgcolor: "grey.100",
+                    "&:hover": { bgcolor: "grey.200" },
+                    p: 0.5,
+                  }}
+                >
+                  <FaEdit size={16} style={{ color: "grey.700" }} />
+                </IconButton>
+                <IconButton
+                  onClick={() => handleOpenDeleteModal(detail._id)}
+                  aria-label="Delete payment detail"
+                  sx={{
+                    bgcolor: "grey.100",
+                    "&:hover": { bgcolor: "grey.200" },
+                    p: 0.5,
+                  }}
+                >
+                  <FaTrash size={16} style={{ color: "grey.700" }} />
+                </IconButton>
+              </Box>
+              <Typography variant="body2" fontWeight="medium">
+                <strong>Type:</strong>{" "}
+                {detail.type ? detail.type.charAt(0).toUpperCase() + detail.type.slice(1) : "N/A"}
               </Typography>
-              <Typography variant="body2">
+              <Typography variant="body2" fontWeight="medium">
                 <strong>Currency:</strong> {detail.currency ? detail.currency.toUpperCase() : "N/A"}
               </Typography>
               {detail.type === "fiat" && detail.accountDetails ? (
                 <>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontWeight="medium">
                     <strong>Bank:</strong> {detail.accountDetails.bankName || "N/A"}
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontWeight="medium">
                     <strong>Account Number:</strong> {detail.accountDetails.accountNumber || "N/A"}
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontWeight="medium">
                     <strong>Account Name:</strong> {detail.accountDetails.accountName || "N/A"}
                   </Typography>
                 </>
               ) : detail.type === "crypto" && detail.accountDetails ? (
                 <>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontWeight="medium">
                     <strong>Address:</strong> {detail.accountDetails.address || "N/A"}
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontWeight="medium">
                     <strong>Network:</strong> {detail.accountDetails.network || "N/A"}
                   </Typography>
                 </>
               ) : (
-                <Typography variant="body2">
+                <Typography variant="body2" fontWeight="medium">
                   <strong>Details:</strong> N/A
                 </Typography>
               )}
@@ -422,7 +556,13 @@ const Account: FC<AccountProps> = ({ user }) => {
               variant="contained"
               color="primary"
               onClick={handlePaymentModalOpen}
-              sx={{ alignSelf: "flex-start" }}
+              sx={{
+                alignSelf: "flex-start",
+                textTransform: "none",
+                fontWeight: "medium",
+                px: 3,
+                py: 1,
+              }}
               aria-label="Add payment details"
             >
               Add Payment Details
@@ -434,7 +574,13 @@ const Account: FC<AccountProps> = ({ user }) => {
             variant="contained"
             color="primary"
             onClick={handlePaymentModalOpen}
-            sx={{ alignSelf: "flex-start" }}
+            sx={{
+              alignSelf: "flex-start",
+              textTransform: "none",
+              fontWeight: "medium",
+              px: 3,
+              py: 1,
+            }}
             aria-label="Add payment details"
           >
             Add Payment Details
@@ -444,61 +590,124 @@ const Account: FC<AccountProps> = ({ user }) => {
 
       {/* Two-Factor Authentication */}
       <Box
-        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+        sx={{
+          flex: { xs: "1 1 100%", md: "1 1 45%" },
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          textAlign: "left",
+        }}
       >
-        <Typography variant="h6">Two-Factor Authentication</Typography>
-        <Typography variant="body2">
-          <strong>Status:</strong> {user && user.twoFA && user.twoFA.enabled ? "Enabled" : "Disabled"}
+        <Typography variant="h6" fontWeight="medium" color="text.primary">
+          Two-Factor Authentication
+        </Typography>
+        <Typography variant="body2" fontWeight="medium">
+          <strong>Status:</strong>{" "}
+          {user && user.twoFA && user.twoFA.enabled ? "Enabled" : "Disabled"}
         </Typography>
         <Button
           variant="contained"
           color="primary"
           onClick={handleTwoFAModalOpen}
-          sx={{ alignSelf: "flex-start" }}
+          sx={{
+            alignSelf: "flex-start",
+            textTransform: "none",
+            fontWeight: "medium",
+            px: 3,
+            py: 1,
+          }}
           aria-label={user && user.twoFA && user.twoFA.enabled ? "Disable 2FA" : "Enable 2FA"}
         >
           {user && user.twoFA && user.twoFA.enabled ? "Disable 2FA" : "Enable 2FA"}
         </Button>
       </Box>
 
-      {/* Second Row: KYC Details and Recovery Email */}
       {/* KYC Details */}
       <Box
-        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+        sx={{
+          flex: { xs: "1 1 100%", md: "1 1 45%" },
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          textAlign: "left",
+        }}
       >
-        <Typography variant="h6">KYC Details</Typography>
+        <Typography variant="h6" fontWeight="medium" color="text.primary">
+          KYC Details
+        </Typography>
         {user && user.kyc && user.kyc.status ? (
-          <Box sx={{ p: 2, border: "1px solid", borderColor: "grey.200", borderRadius: 1 }}>
-            <Typography variant="body2">
+          <Box
+            sx={{
+              p: 2,
+              border: "1px solid",
+              borderColor: "grey.200",
+              borderRadius: 1,
+              backgroundColor: "background.default",
+            }}
+          >
+            <Typography variant="body2" fontWeight="medium" gutterBottom>
               <strong>Status:</strong>{" "}
               {user.kyc.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : "N/A"}
             </Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" fontWeight="medium" gutterBottom>
               <strong>Document Type:</strong> {user.kyc.documentType || "N/A"}
             </Typography>
             {user.kyc.documentFront && (
-              <Typography variant="body2">
-                <strong>Document Front:</strong>{" "}
-                <IconButton href={user.kyc.documentFront} target="_blank" aria-label="View document front">
-                  <FaEye />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <Typography variant="body2" fontWeight="medium">
+                  <strong>Document Front:</strong>
+                </Typography>
+                <IconButton
+                  href={user.kyc.documentFront}
+                  target="_blank"
+                  aria-label="View document front"
+                  sx={{
+                    bgcolor: "grey.100",
+                    "&:hover": { bgcolor: "grey.200" },
+                    p: 0.5,
+                  }}
+                >
+                  <FaEye size={16} style={{ color: "grey.700" }} />
                 </IconButton>
-              </Typography>
+              </Box>
             )}
             {user.kyc.documentBack && (
-              <Typography variant="body2">
-                <strong>Document Back:</strong>{" "}
-                <IconButton href={user.kyc.documentBack} target="_blank" aria-label="View document back">
-                  <FaEye />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <Typography variant="body2" fontWeight="medium">
+                  <strong>Document Back:</strong>
+                </Typography>
+                <IconButton
+                  href={user.kyc.documentBack}
+                  target="_blank"
+                  aria-label="View document back"
+                  sx={{
+                    bgcolor: "grey.100",
+                    "&:hover": { bgcolor: "grey.200" },
+                    p: 0.5,
+                  }}
+                >
+                  <FaEye size={16} style={{ color: "grey.700" }} />
                 </IconButton>
-              </Typography>
+              </Box>
             )}
             {user.kyc.addressProof && (
-              <Typography variant="body2">
-                <strong>Address Proof:</strong>{" "}
-                <IconButton href={user.kyc.addressProof} target="_blank" aria-label="View address proof">
-                  <FaEye />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <Typography variant="body2" fontWeight="medium">
+                  <strong>Address Proof:</strong>
+                </Typography>
+                <IconButton
+                  href={user.kyc.addressProof}
+                  target="_blank"
+                  aria-label="View address proof"
+                  sx={{
+                    bgcolor: "grey.100",
+                    "&:hover": { bgcolor: "grey.200" },
+                    p: 0.5,
+                  }}
+                >
+                  <FaEye size={16} style={{ color: "grey.700" }} />
                 </IconButton>
-              </Typography>
+              </Box>
             )}
           </Box>
         ) : (
@@ -510,7 +719,13 @@ const Account: FC<AccountProps> = ({ user }) => {
               variant="contained"
               color="primary"
               onClick={handleKycModalOpen}
-              sx={{ alignSelf: "flex-start" }}
+              sx={{
+                alignSelf: "flex-start",
+                textTransform: "none",
+                fontWeight: "medium",
+                px: 3,
+                py: 1,
+              }}
               aria-label="Add KYC details"
             >
               Add KYC Details
@@ -521,9 +736,17 @@ const Account: FC<AccountProps> = ({ user }) => {
 
       {/* Recovery Email */}
       <Box
-        sx={{ flex: { xs: "1 1 100%", md: "1 1 45%" }, display: "flex", flexDirection: "column", gap: 2, textAlign: "left" }}
+        sx={{
+          flex: { xs: "1 1 100%", md: "1 1 45%" },
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          textAlign: "left",
+        }}
       >
-        <Typography variant="h6">Recovery Email</Typography>
+        <Typography variant="h6" fontWeight="medium" color="text.primary">
+          Recovery Email
+        </Typography>
         <Typography variant="body2" color="text.secondary">
           No recovery email set.
         </Typography>
@@ -531,7 +754,13 @@ const Account: FC<AccountProps> = ({ user }) => {
           variant="contained"
           color="primary"
           onClick={handleRecoveryEmailModalOpen}
-          sx={{ alignSelf: "flex-start" }}
+          sx={{
+            alignSelf: "flex-start",
+            textTransform: "none",
+            fontWeight: "medium",
+            px: 3,
+            py: 1,
+          }}
           aria-label="Add recovery email"
         >
           Add Recovery Email
@@ -542,12 +771,12 @@ const Account: FC<AccountProps> = ({ user }) => {
       {/* Payment Details Modal */}
       <CustomModal
         open={state.isPaymentModalOpen}
-        title="Add Payment Details"
+        title={state.editingPaymentDetail ? "Edit Payment Details" : "Add Payment Details"}
         onCancel={handlePaymentModalClose}
         onConfirm={handlePaymentSubmit}
       >
-        <Box>
-          <FormControl fullWidth sx={{ mb: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <FormControl fullWidth>
             <InputLabel id="payment-type-label">Payment Type</InputLabel>
             <Select
               labelId="payment-type-label"
@@ -560,7 +789,7 @@ const Account: FC<AccountProps> = ({ user }) => {
               <MenuItem value="crypto">Crypto</MenuItem>
             </Select>
           </FormControl>
-          <FormControl fullWidth sx={{ mb: 2 }}>
+          <FormControl fullWidth>
             <InputLabel id="currency-label">Currency</InputLabel>
             <Select
               labelId="currency-label"
@@ -594,7 +823,6 @@ const Account: FC<AccountProps> = ({ user }) => {
                 label="Bank Name"
                 value={state.bankName}
                 onChange={(e) => dispatch({ type: "SET_BANK_NAME", payload: e.target.value })}
-                sx={{ mb: 2 }}
                 aria-label="Bank name"
               />
               <TextField
@@ -602,7 +830,6 @@ const Account: FC<AccountProps> = ({ user }) => {
                 label="Account Number"
                 value={state.accountNumber}
                 onChange={(e) => dispatch({ type: "SET_ACCOUNT_NUMBER", payload: e.target.value })}
-                sx={{ mb: 2 }}
                 aria-label="Account number"
               />
               <TextField
@@ -610,7 +837,6 @@ const Account: FC<AccountProps> = ({ user }) => {
                 label="Account Name"
                 value={state.accountName}
                 onChange={(e) => dispatch({ type: "SET_ACCOUNT_NAME", payload: e.target.value })}
-                sx={{ mb: 2 }}
                 aria-label="Account name"
               />
             </>
@@ -621,10 +847,9 @@ const Account: FC<AccountProps> = ({ user }) => {
                 label="Crypto Address"
                 value={state.cryptoAddress}
                 onChange={(e) => dispatch({ type: "SET_CRYPTO_ADDRESS", payload: e.target.value })}
-                sx={{ mb: 2 }}
                 aria-label="Crypto address"
               />
-              <FormControl fullWidth sx={{ mb: 2 }}>
+              <FormControl fullWidth>
                 <InputLabel id="network-label">Network (Optional)</InputLabel>
                 <Select
                   labelId="network-label"
@@ -661,6 +886,25 @@ const Account: FC<AccountProps> = ({ user }) => {
         </Box>
       </CustomModal>
 
+      {/* Delete Confirmation Modal */}
+      <CustomModal
+        open={state.isDeleteModalOpen}
+        title="Confirm Delete"
+        onCancel={handleCloseDeleteModal}
+        onConfirm={handleDeletePaymentDetail}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Typography variant="body1" color="text.primary">
+            Are you sure you want to delete this payment detail? This action cannot be undone.
+          </Typography>
+          {state.paymentError && (
+            <Typography variant="caption" color="error">
+              {state.paymentError}
+            </Typography>
+          )}
+        </Box>
+      </CustomModal>
+
       {/* KYC Details Modal */}
       <CustomModal
         open={state.isKycModalOpen}
@@ -668,8 +912,8 @@ const Account: FC<AccountProps> = ({ user }) => {
         onCancel={handleKycModalClose}
         onConfirm={handleKycSubmit}
       >
-        <Box>
-          <FormControl fullWidth sx={{ mb: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <FormControl fullWidth>
             <InputLabel id="document-type-label">Document Type</InputLabel>
             <Select
               labelId="document-type-label"
@@ -680,10 +924,10 @@ const Account: FC<AccountProps> = ({ user }) => {
             >
               <MenuItem value="driver_license">Driver's License</MenuItem>
               <MenuItem value="passport">Passport</MenuItem>
-              <MenuItem value="national_id">National ID Card</MenuItem> {/* Fixed to match schema */}
+              <MenuItem value="national_id">National ID Card</MenuItem>
             </Select>
           </FormControl>
-          <Typography variant="body2" mb={1}>
+          <Typography variant="body2" fontWeight="medium" color="text.primary">
             Document Front
           </Typography>
           <input
@@ -693,7 +937,7 @@ const Account: FC<AccountProps> = ({ user }) => {
             style={{ marginBottom: 16 }}
             aria-label="Upload document front"
           />
-          <Typography variant="body2" mb={1}>
+          <Typography variant="body2" fontWeight="medium" color="text.primary">
             Document Back
           </Typography>
           <input
@@ -703,7 +947,7 @@ const Account: FC<AccountProps> = ({ user }) => {
             style={{ marginBottom: 16 }}
             aria-label="Upload document back"
           />
-          <Typography variant="body2" mb={1}>
+          <Typography variant="body2" fontWeight="medium" color="text.primary">
             Address Proof
           </Typography>
           <input
@@ -728,13 +972,12 @@ const Account: FC<AccountProps> = ({ user }) => {
         onCancel={handleTwoFAModalClose}
         onConfirm={handleTwoFASubmit}
       >
-        <Box>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             fullWidth
             label="2FA Secret"
             value={state.twoFASecret}
             onChange={(e) => dispatch({ type: "SET_TWO_FA_SECRET", payload: e.target.value })}
-            sx={{ mb: 2 }}
             aria-label="2FA secret"
           />
           {state.twoFAError && (
@@ -752,14 +995,13 @@ const Account: FC<AccountProps> = ({ user }) => {
         onCancel={handleRecoveryEmailModalClose}
         onConfirm={handleRecoveryEmailSubmit}
       >
-        <Box>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             fullWidth
             label="Recovery Email"
             type="email"
             value={state.recoveryEmail}
             onChange={(e) => dispatch({ type: "SET_RECOVERY_EMAIL", payload: e.target.value })}
-            sx={{ mb: 2 }}
             aria-label="Recovery email"
           />
           {state.recoveryEmailError && (

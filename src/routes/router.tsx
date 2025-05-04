@@ -15,6 +15,8 @@ const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
 const Page404 = lazy(() => import('pages/errors/Page404'));
 const Home = lazy(() => import('pages/landingPage'));
 const WithdrawalHistory = lazy(() => import('pages/dashboard/withdrawalHistory'));
+const TwoFaVerification = lazy(() => import('pages/authentication/twoFAVerification'));
+const Confirm2FAUpdate = lazy(() => import('pages/authentication/confirm2FAUpdate'));
 
 // Dashboard sub-route components
 const NFTMarketplace = lazy(() => import('pages/dashboard/NFTMarketplace'));
@@ -117,6 +119,14 @@ export const routes = [
           {
             path: paths.resetPassword, // '/authentication/reset-password'
             element: <ResetPassword />,
+          },
+          {
+            path: paths.twoFA,
+            element: <TwoFaVerification />
+          },
+          {
+            path: paths.twoFAUpdate,
+            element: <Confirm2FAUpdate />
           },
         ],
       },

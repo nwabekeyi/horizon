@@ -321,7 +321,11 @@ export const WithdrawFundsModal: FC<WithdrawFundsModalProps> = ({
   return (
     <>
       <CustomModal open={isOpen} title="Withdraw Funds" onCancel={onClose} noConfirm>
-        <Box>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3
+        }}>
           {/* Payment Method Selection */}
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Payment Method</InputLabel>

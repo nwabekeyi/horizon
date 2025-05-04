@@ -1,5 +1,4 @@
 // src/pages/dashboard/profile/InvestmentCard.tsx
-
 import { FC, useEffect, useState, useCallback } from "react";
 import { Box, Card, CircularProgress, Typography, styled, Button } from "@mui/material";
 import { User } from "utils/interfaces";
@@ -12,18 +11,17 @@ import {
   BrokerFeeResponse,
   InvestmentTotals,
 } from "./Interfaces";
-import { TransactionDetailsModal, StatusBadge } from "./modals/TransactionDetailsModal";
-import { TotalInvestmentModal } from "./modals/TotalInvestmentsModal"; // Fixed import
+import { TransactionDetailsModal } from "./modals/TransactionDetailsModal";
+import { TotalInvestmentModal } from "./modals/TotalInvestmentsModal";
 import { WithdrawFundsModal } from "./modals/WithdrawFundsModal";
+import StatusBadge from 'components/common/statusBadge';
 
-// Interface for withdrawal API response
 interface WithdrawalResponse {
   message: string;
   withdrawalId: string;
   brokerFeeProofUrl: string;
 }
 
-// Styled components
 const TransactionCard = styled(Card)(({ theme }) => ({
   padding: theme.spacing(3),
   marginBottom: theme.spacing(2),
@@ -83,7 +81,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
   const [isTotalModalOpen, setIsTotalModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
-  // Fetch transactions
   useEffect(() => {
     if (user?._id) {
       callTransactionApi({
@@ -93,7 +90,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
     }
   }, [callTransactionApi, user?._id]);
 
-  // Fetch exchange rates when total investment modal is opened
   const fetchExchangeRates = useCallback(() => {
     callExchangeApi({
       url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether&vs_currencies=usd",
@@ -101,7 +97,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
     });
   }, [callExchangeApi]);
 
-  // Fetch broker fee when withdraw modal opens
   useEffect(() => {
     if (isWithdrawModalOpen) {
       callBrokerFeeApi({
@@ -111,7 +106,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
     }
   }, [isWithdrawModalOpen, callBrokerFeeApi]);
 
-  // Calculate total investments
   const calculateTotals = useCallback((): InvestmentTotals => {
     if (!transactionData?.transactions || !exchangeData || !user) {
       return { fiat: 0, btc: 0, eth: 0, usdt: 0, totalUsd: 0 };
@@ -139,12 +133,10 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
     return totals;
   }, [transactionData, exchangeData, user]);
 
-  // Handle transaction click
   const handleTransactionClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
   };
 
-  // Handle total investment modal
   const handleTotalModalOpen = () => {
     fetchExchangeRates();
     setIsTotalModalOpen(true);
@@ -158,7 +150,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
     setSelectedTransaction(null);
   };
 
-  // Handle withdraw modal
   const handleWithdrawModalOpen = () => {
     setIsWithdrawModalOpen(true);
   };
@@ -167,7 +158,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
     setIsWithdrawModalOpen(false);
   };
 
-  // Filter transactions to ensure uniqueness and user match
   const uniqueTransactions = user && transactionData?.transactions
     ? Array.from(
         new Map(transactionData.transactions.map((tx) => [tx.transactionId, tx])).values()
@@ -176,7 +166,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
 
   return (
     <TransactionCard>
-      {/* Summary Section */}
       {user ? (
         <SummaryBox>
           <Box textAlign="center">
@@ -278,7 +267,6 @@ const InvestmentCard: FC<{ user: User }> = ({ user }) => {
         </Box>
       )}
 
-      {/* Modals */}
       <TransactionDetailsModal selectedTransaction={selectedTransaction} onClose={handleModalClose} />
       <TotalInvestmentModal
         isOpen={isTotalModalOpen}

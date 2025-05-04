@@ -2,11 +2,18 @@ import { useState, useMemo } from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import { DataGrid, GridColDef, GridCellParams } from '@mui/x-data-grid';
 import DataGridFooter from 'components/common/DataGridFooter';
-import IconifyIcon from 'components/base/IconifyIcon';
+import {
+  FaBitcoin,
+  FaEthereum,
+  FaDollarSign,
+  FaEuroSign,
+  FaPoundSign,
+} from 'react-icons/fa';
 import dayjs from 'dayjs';
 import { DisplayTransaction } from 'utils/interfaces';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import IconifyIcon from 'components/base/IconifyIcon'; // Make sure this component supports icon name + sx props
 
 interface ActionItem {
   icon?: string;
@@ -21,28 +28,38 @@ interface TransactionTableProps {
   actions?: ActionItem[] | ((transaction: DisplayTransaction) => ActionItem[]);
 }
 
-const getCurrencySymbol = (currency: string | undefined): string => {
+const getCurrencyIcon = (currency: string | undefined) => {
   switch (currency?.toLowerCase()) {
     case 'usd':
-      return '$';
+      return <FaDollarSign style={{ fontSize: 15, color: '#85bb65' }} />;
     case 'cad':
-      return 'C$';
+      return <FaDollarSign style={{ fontSize: 15, color: '#d80621' }} />;
     case 'eur':
-      return '€';
+      return <FaEuroSign style={{ fontSize: 15, color: '#003399' }} />;
     case 'gbp':
-      return '£';
+      return <FaPoundSign style={{ fontSize: 15, color: '#00247d' }} />;
     case 'btc':
-      return '₿';
+      return <FaBitcoin style={{ fontSize: 15, color: '#f7931a' }} />;
     case 'eth':
-      return 'Ξ';
+      return <FaEthereum style={{ fontSize: 15, color: '#3c3c3d' }} />;
     case 'usdt':
-      return '₮';
+      return (
+        <IconifyIcon
+          icon="cryptocurrency:usdt"
+          sx={{ fontSize: 15, color: '#26a17b', verticalAlign: 'middle' }}
+        />
+      );
     default:
-      return '$';
+      return <FaDollarSign style={{ fontSize: 15, color: '#999' }} />;
   }
 };
 
-const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: TransactionTableProps) => {
+const TransactionTable = ({
+  searchText,
+  itemsPerPage,
+  transactions,
+  actions,
+}: TransactionTableProps) => {
   const [page, setPage] = useState<number>(0);
 
   const filteredTransactions = useMemo(() => {
@@ -61,14 +78,19 @@ const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: T
       field: 'amount',
       headerName: 'Amount',
       flex: 1,
-      renderCell: (params: GridCellParams) => `${getCurrencySymbol(params.row.currency)}${params.value}`,
+      renderCell: (params: GridCellParams) => (
+        <>
+          {getCurrencyIcon(params.row.currency)} {params.value}
+        </>
+      ),
     },
     { field: 'companyName', headerName: 'Company', flex: 1 },
     {
       field: 'createdAt',
       headerName: 'Date',
       flex: 1,
-      renderCell: (params: GridCellParams) => dayjs(params.value).format('MMM DD, YYYY'),
+      renderCell: (params: GridCellParams) =>
+        dayjs(params.value).format('MMM DD, YYYY'),
     },
     {
       field: 'status',
@@ -85,7 +107,10 @@ const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: T
           successful: { backgroundColor: '#388e3c', color: '#ffffff' }, // Dark green
         };
 
-        const style = statusStyles[status] || { backgroundColor: '#e0e0e0', color: '#000000' }; // Default gray
+        const style = statusStyles[status] || {
+          backgroundColor: '#e0e0e0',
+          color: '#000000',
+        }; // Default gray
 
         return (
           <Box
@@ -115,7 +140,8 @@ const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: T
       filterable: false,
       renderCell: (params: GridCellParams) => {
         const row = params.row as DisplayTransaction;
-        const actionList: ActionItem[] = typeof actions === 'function' ? actions(row) : actions;
+        const actionList: ActionItem[] =
+          typeof actions === 'function' ? actions(row) : actions;
 
         return (
           <Stack direction="row" spacing={1}>
@@ -130,7 +156,11 @@ const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: T
                     />
                   ) : (
                     <span
-                      style={{ cursor: 'pointer', fontSize: 14, fontWeight: 500 }}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 500,
+                      }}
                       onClick={() => action.onClick(row._id)}
                     >
                       {action.label}
@@ -147,6 +177,7 @@ const TransactionTable = ({ searchText, itemsPerPage, transactions, actions }: T
 
   return (
     <DataGrid
+      sx={{ px: 2 }}
       autoHeight
       pageSize={itemsPerPage}
       rowsPerPageOptions={[itemsPerPage]}

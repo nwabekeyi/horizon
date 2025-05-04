@@ -12,7 +12,7 @@ import { useApiRequest } from '../../../../hooks/useApi';
 import { ENDPOINTS } from '../../../../utils/endpoints';
 import Progress from '../../../../components/loading/Progress';
 import { useCompressedDropzone } from '../../../../hooks/useDropzoneConfig';
-import { MultiStepFlow } from '../../../../components/common/multiStepFlow'; // Adjust path as needed
+import { MultiStepFlow } from '../../../../components/common/multiStepFlow';
 
 interface ModalProps {
   open: boolean;
@@ -38,6 +38,15 @@ interface UserInfo {
   email: string;
   role: string;
   profilePicture?: string;
+  status: string; // 'verified', 'unverified', 'suspended'
+  kyc: {
+    status: string; // 'pending', 'approved', 'rejected'
+    documentType: string; // 'passport', 'driver_license', 'national_id'
+    documentFront: string; // URL to image
+    documentBack: string; // URL to image
+    addressProof: string; // URL to image
+    verifiedAt?: string; // ISO date string
+  };
 }
 
 interface RootState {
@@ -56,8 +65,12 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
   const [error, setError] = React.useState<string | null>(null);
 
   const { error: apiError, loading, callApi } = useApiRequest<VerificationResponse, FormData>();
-  const userId = useSelector((state: RootState) => state.user.user?._id);
+  const user = useSelector((state: RootState) => state.user.user);
   const dispatch = useDispatch();
+
+  // Check if KYC fields are filled
+  const isKycFilled = user?.kyc?.documentFront && user?.kyc?.documentBack && user?.kyc?.addressProof && user?.kyc?.documentType;
+  const isVerified = user?.status === 'verified' && isKycFilled;
 
   const documentFrontDropzone = useCompressedDropzone({
     onFileAccepted: (file: File) => {
@@ -105,7 +118,7 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
       !verificationData.documentBack ||
       !verificationData.addressProof ||
       !verificationData.documentType ||
-      !userId
+      !user?._id
     ) {
       setError('Please upload all required documents, select a document type, and ensure user is logged in.');
       return;
@@ -125,7 +138,7 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
     formData.append('documentBack', verificationData.documentBack, verificationData.documentBack.name);
     formData.append('addressProof', verificationData.addressProof, verificationData.addressProof.name);
     formData.append('documentType', verificationData.documentType);
-    formData.append('userId', userId);
+    formData.append('userId', user._id);
 
     for (const [key, value] of formData.entries()) {
       console.log(`${key}:`, value);
@@ -157,6 +170,86 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
     return <Progress />;
   }
 
+  // Render if KYC is filled but not verified
+  if (isKycFilled && !isVerified) {
+    return (
+      <CustomModal open={open} onCancel={handleClose} title="KYC Status" noConfirm>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" color="primary">
+            You have completed KYC, waiting for verification.
+          </Typography>
+          <Typography variant="body2" mt={1}>
+            Your documents have been submitted and are under review. You will be notified once the verification process is complete.
+          </Typography>
+        </Box>
+      </CustomModal>
+    );
+  }
+
+  // Render if user is verified and KYC is filled
+  if (isVerified) {
+    return (
+      <CustomModal open={open} onCancel={handleClose} title="Verification Complete" noConfirm>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" color="success.main">
+            User is already verified.
+          </Typography>
+          <Typography variant="body2" mt={1}>
+            Your KYC verification was completed on{' '}
+            {user.kyc.verifiedAt ? new Date(user.kyc.verifiedAt).toLocaleDateString() : 'N/A'}.
+          </Typography>
+          <Box mt={2}>
+            <Typography variant="subtitle1">Submitted Documents:</Typography>
+            <Stack spacing={2} mt={1}>
+              <Box>
+                <Typography variant="body2">
+                  <strong>Document Type:</strong> {user.kyc.documentType || 'N/A'}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Typography variant="body2">
+                  <strong>Front of ID:</strong>
+                </Typography>
+                {user.kyc.documentFront && (
+                  <img
+                    src={user.kyc.documentFront}
+                    alt="Front of ID"
+                    style={{ maxWidth: '100px', maxHeight: '100px' }}
+                  />
+                )}
+              </Stack>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Typography variant="body2">
+                  <strong>Back of ID:</strong>
+                </Typography>
+                {user.kyc.documentBack && (
+                  <img
+                    src={user.kyc.documentBack}
+                    alt="Back of ID"
+                    style={{ maxWidth: '100px', maxHeight: '100px' }}
+                  />
+                )}
+              </Stack>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Typography variant="body2">
+                  <strong>Proof of Address:</strong>
+                </Typography>
+                {user.kyc.addressProof && (
+                  <img
+                    src={user.kyc.addressProof}
+                    alt="Proof of Address"
+                    style={{ maxWidth: '100px', maxHeight: '100px' }}
+                  />
+                )}
+              </Stack>
+            </Stack>
+          </Box>
+        </Box>
+      </CustomModal>
+    );
+  }
+
+  // Render the form if KYC is not filled
   const steps = [
     {
       label: 'ID Card',
@@ -277,7 +370,7 @@ export const VerificationModal = ({ open, handleClose }: ModalProps) => {
           <Typography variant="body1">Review your submitted documents:</Typography>
           <Box>
             <Typography variant="body2">
-              <strong>User ID:</strong> {userId || 'Not available'}
+              <strong>User ID:</strong> {user?._id || 'Not available'}
             </Typography>
             <Typography variant="body2">
               <strong>Document Type:</strong> {verificationData.documentType || 'Not selected'}

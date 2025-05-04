@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Box,
   Dialog,
   DialogActions,
   DialogContent,
@@ -8,7 +9,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { Box } from "@mui/material";
 import { ReactNode } from "react";
 
 interface ChildrenBoxProps {
@@ -57,8 +57,10 @@ const CustomModal: React.FC<CustomModalProps> = ({
       {title && <DialogTitle>{title}</DialogTitle>}
 
       <DialogContent dividers >
-        {children}
-      </DialogContent>
+        <Box marginTop={2}>
+            {children}
+        </Box>
+     </DialogContent>
 
       <DialogActions>
         <Button onClick={onCancel} color="secondary" variant="contained">

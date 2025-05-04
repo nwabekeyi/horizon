@@ -22,10 +22,19 @@ import CustomModal from '../../components/base/modal';
 import { ENDPOINTS } from 'utils/endpoints';
 import Footer from 'layouts/main-layout/footer';
 
+// Form state for email and password
 interface User {
   [key: string]: string;
 }
 
+// User object in login response
+interface UserResponse {
+  _id: string;
+  email: string;
+  [key: string]: unknown;
+}
+
+// Forgot Password types
 interface ForgotPasswordRequestBody {
   email: string;
 }
@@ -33,6 +42,28 @@ interface ForgotPasswordRequestBody {
 interface ForgotPasswordResponse {
   message: string;
 }
+
+// Union type for login response (consistent with userSlice)
+type LoginResponse =
+  | {
+      user: UserResponse;
+      token: string;
+    }
+  | {
+      success: boolean;
+      message: string;
+      twoFA?: {
+        userId: string;
+        enabled: boolean;
+      };
+    };
+
+// Type guard for 2FA response from login
+const isTwoFAResponse = (
+  response: LoginResponse
+): response is { success: boolean; message: string; twoFA?: { userId: string; enabled: boolean } } => {
+  return 'success' in response && 'message' in response;
+};
 
 const SignIn = () => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -44,7 +75,10 @@ const SignIn = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const { error: apiError, callApi } = useApiRequest<ForgotPasswordResponse, ForgotPasswordRequestBody>();
+  const {
+    error: forgotPasswordApiError,
+    callApi: callForgotPasswordApi,
+  } = useApiRequest<ForgotPasswordResponse, ForgotPasswordRequestBody>();
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
@@ -58,7 +92,7 @@ const SignIn = () => {
     if (forgotPassword) {
       const body: ForgotPasswordRequestBody = { email: user.email };
       try {
-        await callApi({
+        await callForgotPasswordApi({
           url: ENDPOINTS.FORGETPASSWORD,
           method: 'POST',
           body,
@@ -66,28 +100,37 @@ const SignIn = () => {
         setModalOpen(true);
       } catch (err) {
         setLoading(false);
-        console.error('API Error:', err);
+        console.error('Forgot Password API Error:', err);
         setError('Failed to request password reset. Please try again.');
       }
     } else {
       const action = await dispatch(loginUser({ email: user.email, password: user.password }));
       if (loginUser.fulfilled.match(action)) {
-        navigate(paths.dashboard);
+        const response = action.payload as LoginResponse;
+        if (
+          isTwoFAResponse(response) &&
+          response.success &&
+          response.message === '2FA required' &&
+          response.twoFA?.enabled &&
+          response.twoFA.userId
+        ) {
+          sessionStorage.setItem('twoFAUserId', response.twoFA.userId);
+          navigate('/authentication/2FAverification');
+        } else {
+          navigate(paths.dashboard);
+        }
       } else {
         setError(action.payload as string);
-        setLoading(false);
       }
+      setLoading(false);
     }
   };
 
-  // Handle Enter key press on password field
   const handlePasswordKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !forgotPassword) {
-      e.preventDefault(); // Prevent default Enter behavior
-      const form = e.currentTarget.form; // Get the parent form
-      if (form) {
-        form.requestSubmit(); // Trigger form submission
-      }
+      e.preventDefault();
+      const form = e.currentTarget.form;
+      if (form) form.requestSubmit();
     }
   };
 
@@ -134,7 +177,9 @@ const SignIn = () => {
       <Box width={1}>
         <Typography variant="h3">{forgotPassword ? 'Forgot Password' : 'Sign In'}</Typography>
         <Typography mt={1.5} variant="body2" color="text.disabled">
-          {forgotPassword ? 'Enter your email to reset your password.' : 'Enter your email and password to sign in!'}
+          {forgotPassword
+            ? 'Enter your email to reset your password.'
+            : 'Enter your email and password to sign in!'}
         </Typography>
 
         <Divider sx={{ my: 3 }}>or</Divider>
@@ -202,7 +247,7 @@ const SignIn = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={user.password}
                 onChange={handleInputChange}
-                onKeyDown={handlePasswordKeyDown} // Add keydown handler
+                onKeyDown={handlePasswordKeyDown}
                 variant="filled"
                 placeholder="Min. 8 characters"
                 autoComplete="current-password"
@@ -267,9 +312,9 @@ const SignIn = () => {
               </Button>
             </>
           )}
-          {apiError && (
+          {forgotPasswordApiError && (
             <Typography color="error" variant="body2" sx={{ mt: 2 }}>
-              {apiError.message}
+              {forgotPasswordApiError.message}
             </Typography>
           )}
         </Box>

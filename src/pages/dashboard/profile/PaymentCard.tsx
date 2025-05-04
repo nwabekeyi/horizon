@@ -417,7 +417,7 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
         onCancel={handleEditModalClose}
         onConfirm={handleEditSubmit}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <FormControl fullWidth>
             <InputLabel id="payment-type-label">Payment Type</InputLabel>
             <Select

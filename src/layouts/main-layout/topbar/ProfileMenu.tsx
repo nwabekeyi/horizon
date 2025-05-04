@@ -14,7 +14,6 @@ import {
   ViewProfileModal,
   AccountSettingsModal,
   NotificationsModal,
-  SwitchAccountModal,
   HelpCenterModal,
   LogoutModal,
   VerificationModal,
@@ -58,7 +57,6 @@ const ProfileMenu = () => {
     { id: 1, title: 'View Profile', icon: 'material-symbols:account-circle-outline', onClick: () => handleOpenModal('viewProfile') },
     { id: 2, title: 'Account Settings', icon: 'material-symbols:settings-account-box-outline-rounded', onClick: () => handleOpenModal('accountSettings') },
     { id: 3, title: 'Notifications', icon: 'ic:outline-notifications-none', onClick: () => handleOpenModal('notifications') },
-    { id: 4, title: 'Switch Account', icon: 'material-symbols:switch-account-outline', onClick: () => handleOpenModal('switchAccount') },
     { id: 5, title: 'Help Center', icon: 'material-symbols:help-outline', onClick: () => handleOpenModal('helpCenter') },
     { id: 6, title: 'Verification', icon: 'material-symbols:verified-user-outline', onClick: () => handleOpenModal('verification') },
     { id: 7, title: 'Logout', icon: 'material-symbols:logout', onClick: () => handleOpenModal('logout') },
@@ -138,7 +136,6 @@ const ProfileMenu = () => {
       <ViewProfileModal open={activeModal === 'viewProfile'} handleClose={handleCloseModal} />
       <AccountSettingsModal open={activeModal === 'accountSettings'} handleClose={handleCloseModal} />
       <NotificationsModal open={activeModal === 'notifications'} handleClose={handleCloseModal} />
-      <SwitchAccountModal open={activeModal === 'switchAccount'} handleClose={handleCloseModal} />
       <HelpCenterModal open={activeModal === 'helpCenter'} handleClose={handleCloseModal} />
       <VerificationModal open={activeModal === 'verification'} handleClose={handleCloseModal} />
       <LogoutModal open={activeModal === 'logout'} handleClose={handleCloseModal} />

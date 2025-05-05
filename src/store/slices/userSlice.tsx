@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ENDPOINTS } from 'utils/endpoints';
 import { User, PaymentDetail } from 'utils/interfaces';
 
-export interface UserState {  // Exported UserState type
+export interface UserState {
   user: User | null;
   isLoggedIn: boolean;
   token: string | null;
@@ -18,7 +18,29 @@ const initialState: UserState = {
   error: null,
 };
 
-const loginUser = createAsyncThunk(
+// Define the expected response type for login
+type LoginResponse =
+  | {
+      user: User;
+      token: string;
+    }
+  | {
+      success: boolean;
+      message: string;
+      twoFA?: {
+        userId: string;
+        enabled: boolean;
+      };
+    };
+
+// Type guard to check if the response is a 2FA response
+const isTwoFAResponse = (
+  response: LoginResponse
+): response is { success: boolean; message: string; twoFA?: { userId: string; enabled: boolean } } => {
+  return 'success' in response && 'message' in response;
+};
+
+export const loginUser = createAsyncThunk(
   'user/login',
   async (credentials: { email: string; password: string }, thunkAPI) => {
     try {
@@ -31,20 +53,32 @@ const loginUser = createAsyncThunk(
       const data = await response.json();
 
       if (!response.ok) {
-        return thunkAPI.rejectWithValue(data.message);
+        return thunkAPI.rejectWithValue(data.message || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
+      // Store token in localStorage regardless, as it might be needed later
+      if ('token' in data && data.token) {
+        localStorage.setItem('token', data.token);
+      }
 
-      return {
-        user: data.user,
-        token: data.token,
-      };
+      return data as LoginResponse;
     } catch (error) {
       return thunkAPI.rejectWithValue('Network error');
     }
   }
 );
+
+// Define payload for updateTwoFA
+interface TwoFAPayload {
+  enabled: boolean;
+  secret?: string;
+}
+
+// Define payload for updating user after 2FA
+interface UpdateUserPayload {
+  user: User;
+  token?: string;
+}
 
 const userSlice = createSlice({
   name: 'user',
@@ -55,11 +89,36 @@ const userSlice = createSlice({
       state.isLoggedIn = false;
       state.token = null;
       localStorage.removeItem('token');
-      window.location.href= '/';
+      window.location.href = '/';
     },
     addPaymentDetail: (state, action: PayloadAction<PaymentDetail>) => {
       if (state.user) {
         state.user.paymentDetails = [...(state.user.paymentDetails || []), action.payload];
+      }
+    },
+    updateTwoFA: (state, action: PayloadAction<TwoFAPayload>) => {
+      if (state.user) {
+        state.user.twoFA = {
+          enabled: action.payload.enabled,
+          secret: action.payload.secret || '',
+        };
+      }
+    },
+    updateUserAfter2FA: (state, action: PayloadAction<UpdateUserPayload>) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token || state.token; // Use existing token if none provided
+      state.isLoggedIn = !!action.payload.user;
+      state.status = 'succeeded';
+      state.error = null;
+      if (action.payload.token) {
+        localStorage.setItem('token', action.payload.token); // Update token in localStorage if provided
+      }
+    },
+    deletePaymentDetail: (state, action: PayloadAction<string>) => {
+      if (state.user && state.user.paymentDetails) {
+        state.user.paymentDetails = state.user.paymentDetails.filter(
+          (detail) => detail._id !== action.payload
+        );
       }
     },
   },
@@ -68,16 +127,18 @@ const userSlice = createSlice({
       .addCase(loginUser.pending, (state) => {
         state.status = 'loading';
       })
-      .addCase(
-        loginUser.fulfilled,
-        (state, action: PayloadAction<{ user: User | null; token: string }>) => {
-          state.status = 'succeeded';
-          state.user = action.payload.user;
-          state.token = action.payload.token;
-          state.isLoggedIn = !!action.payload.user;
-          state.error = null;
+      .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginResponse>) => {
+        state.status = 'succeeded';
+        const response = action.payload;
+
+        // Only update user and token in Redux if 2FA is not required
+        if (!isTwoFAResponse(response) || response.message !== '2FA required') {
+          state.user = 'user' in response ? response.user : null;
+          state.token = 'token' in response ? response.token : null;
+          state.isLoggedIn = !!state.user;
         }
-      )
+        state.error = null;
+      })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string;
@@ -85,6 +146,6 @@ const userSlice = createSlice({
   },
 });
 
-export const { logout, addPaymentDetail } = userSlice.actions;
+export const { logout, addPaymentDetail, updateTwoFA, updateUserAfter2FA, deletePaymentDetail } =
+  userSlice.actions;
 export default userSlice.reducer;
-export { loginUser };

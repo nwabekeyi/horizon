@@ -1,3 +1,4 @@
+// src/components/InvestmentHistory.tsx
 import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -9,13 +10,14 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TransactionTable from '../../../components/sections/dashboard/complex-table/TransactionTable';
 import CustomModal, { ChildrenBox } from '../../../components/base/modal';
-import useAnalytics from '../../../components/sections/dashboard/hook/useAnalytics';
+import useAnalytics from 'components/sections/dashboard/hook/useAnalytics';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store';
-import { useApiRequest } from '../../../hooks/useApi';
-import { ENDPOINTS } from '../../../utils/endpoints';
+import { useApiRequest } from 'hooks/useApi';
+import { ENDPOINTS } from 'utils/endpoints';
 import { DisplayTransaction, Transaction, Currency } from 'utils/interfaces';
 import dayjs from 'dayjs';
+import StatusBadge from 'components/common/statusBadge';
 
 interface TransactionEditPayload {
   transactionId: string;
@@ -249,9 +251,6 @@ const InvestmentHistory = () => {
         {selectedTransaction ? (
           <ChildrenBox>
             <Typography variant="body1">
-              <strong>ID:</strong> {selectedTransaction._id}
-            </Typography>
-            <Typography variant="body1">
               <strong>Transaction ID:</strong> {selectedTransaction.transactionId}
             </Typography>
             <Typography variant="body1">
@@ -259,7 +258,9 @@ const InvestmentHistory = () => {
             </Typography>
             <Typography variant="body1">
               <strong>Status:</strong>{' '}
-              {selectedTransaction.status.charAt(0).toUpperCase() + selectedTransaction.status.slice(1)}
+              <StatusBadge status={selectedTransaction.status}>
+                {selectedTransaction.status.charAt(0).toUpperCase() + selectedTransaction.status.slice(1)}
+              </StatusBadge>
             </Typography>
             <Typography variant="body1">
               <strong>Company:</strong> {selectedTransaction.companyName}

@@ -78,7 +78,24 @@ const NFTMarketplace = (): JSX.Element => {
 
   // Define table columns for displaying crypto prices
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Coin', width: 150 },
+    {
+      field: 'name',
+      headerName: 'Coin',
+      width: 200,
+      renderCell: (params) => {
+        const coin = params.row as CryptoItem;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <img
+              src={coin.image}
+              alt={coin.name}
+              style={{ width: 20, height: 20, marginRight: 8 }}
+            />
+            {coin.name}
+          </Box>
+        );
+      },
+    },
     { field: 'symbol', headerName: 'Symbol', width: 100 },
     { field: 'current_price', headerName: 'Price (USD)', width: 150 },
     { field: 'market_cap', headerName: 'Market Cap (USD)', width: 200 },
@@ -117,7 +134,13 @@ const NFTMarketplace = (): JSX.Element => {
   }
 
   return (
-    <Box sx={{ p: 4, width: '100%' }}>
+    <Box sx={{
+       p: 4, width: '100%',
+        display:'flex',
+        flexDirection: 'column',
+        gap: 2
+
+     }}>
       <TrendingCryptos />
       <Table
         data={data?.assets || []}

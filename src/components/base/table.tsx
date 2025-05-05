@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Box } from '@mui/material';
+import { useMemo, useState, ChangeEvent } from 'react';
+import { Box, LinearProgress, Pagination } from '@mui/material';
 import { DataGrid, GridColDef, GridRowsProp } from '@mui/x-data-grid';
 import DataGridFooter from 'components/common/DataGridFooter';
-import { blue, gray, white } from 'theme/colors'; // Import colors
+import { blue, white, gray, skyblue } from 'theme/colors'; // Your existing color tokens
 
 interface ReusableDataTableProps<T> {
   data: T[];
@@ -12,7 +12,7 @@ interface ReusableDataTableProps<T> {
   defaultPageSize?: number;
   checkboxSelection?: boolean;
   showFooter?: boolean;
-  tableHeight: number; // height as a prop
+  tableHeight: number;
 }
 
 const Table = <T extends { id?: string | number }>({
@@ -23,10 +23,19 @@ const Table = <T extends { id?: string | number }>({
   defaultPageSize = 4,
   checkboxSelection = false,
   showFooter = true,
-  tableHeight, // destructure the tableHeight prop
+  tableHeight,
 }: ReusableDataTableProps<T>) => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(defaultPageSize);
+
+  // Define the color shades type inline
+  type ColorShades = { [key: number]: string };
+
+  // Assert imported colors as typed
+  const blueColors = blue as ColorShades;
+  const whiteColors = white as ColorShades;
+  const grayColors = gray as ColorShades;
+  const skyblueColors = skyblue as ColorShades;
 
   const rows: GridRowsProp = data.map((item, index) => ({
     id: item.id ?? `row-${index}`,
@@ -43,12 +52,18 @@ const Table = <T extends { id?: string | number }>({
   }, [rows, searchText]);
 
   return (
-    <Box sx={{
-      height: tableHeight, // apply the tableHeight prop here
-      width: '100%',
-      boxShadow: `0 4px 6px ${gray[500]}`, // Box shadow added to the parent Box
-      borderRadius: '10px', // Rounded corners
-    }}>
+    <Box
+      sx={{
+        height: tableHeight,
+        width: '100%',
+        textAlign: 'center',
+        fontFamily: 'Montserrat',
+        backgroundColor: whiteColors[100],
+      }}
+    >
+      {filteredRows.length === 0 && (
+        <LinearProgress sx={{ backgroundColor: blueColors[500] }} />
+      )}
       <DataGrid
         rows={filteredRows}
         columns={columns}
@@ -66,36 +81,64 @@ const Table = <T extends { id?: string | number }>({
         checkboxSelection={checkboxSelection}
         components={{
           Footer: showFooter ? DataGridFooter : undefined,
+          LoadingOverlay: () => (
+            <LinearProgress sx={{ backgroundColor: blueColors[500] }} />
+          ),
+          Pagination: () => (
+            <Box
+              sx={{
+                padding: '20px',
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                '& .MuiPaginationItem-root': {
+                  color: skyblueColors[500],
+                  fontFamily: 'Montserrat',
+                },
+              }}
+            >
+              <Pagination
+                count={Math.ceil(filteredRows.length / pageSize)}
+                page={page + 1}
+                onChange={(
+                  event: ChangeEvent<unknown>,
+                  value: number
+                ) => setPage(value - 1)}
+              />
+            </Box>
+          ),
         }}
         sx={{
           '& .MuiDataGrid-root': {
-            backgroundColor: white[500], // Light background color for the grid
+            backgroundColor: whiteColors[100],
+            fontFamily: 'Montserrat',
+            border: 'none',
           },
-          '& .MuiDataGrid-header': {
-            padding: '5px', // Add 5px padding to the header
-          },
-          '& .MuiDataGrid-footerContainer': {
-            backgroundColor: blue[500], // Footer background color
-            color: white[100], // Footer text color
-            padding: '5px', // Add 5px padding to the footer
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: blueColors[700],
+            color: whiteColors[100],
+            fontWeight: 700,
+            fontFamily: 'Montserrat',
+            padding: '10px',
           },
           '& .MuiDataGrid-cell': {
-            padding: '10px', // Padding for cells
-            color: gray[900], // Text color
-            borderBottom: `1px solid ${gray[500]}`, // Border between rows
+            color: '#333',
+            backgroundColor: whiteColors[100],
+            padding: '10px',
+            borderBottom: `1px solid ${grayColors[200]}`,
           },
-          '& .MuiDataGrid-row': {
-            '&:hover': {
-              backgroundColor: blue[500], // Hover effect for row
-              color: white[100], // Text color on hover
-              cursor: 'pointer', // Pointer cursor on hover
-            },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: grayColors[100],
+            cursor: 'pointer',
           },
-          '& .MuiDataGrid-row:nth-of-type(even)': {
-            backgroundColor: gray[100], // Alternating row background
+          '& .MuiDataGrid-footerContainer': {
+            backgroundColor: whiteColors[100],
+            color: '#333',
+            fontFamily: 'Montserrat',
+            padding: '5px',
           },
-          '& .css-1myfxih-MuiStack-root, .css-f3jnds-MuiDataGrid-columnHeaders': {
-            padding: '10px', // Alternating row background
+          '& .MuiDataGrid-overlay': {
+            backgroundColor: whiteColors[100],
           },
         }}
       />

@@ -144,7 +144,7 @@ const TotalSpent = ({ user }: TotalSpentProps) => {
             {formattedTotalSpent}
           </Typography>
           <Stack spacing={1}>
-            <Typography variant="body2" color="text.disabled" fontWeight={500}>
+            <Typography variant="h6" fontSize={10} color="text.disabled" fontWeight={500}>
               Monthly Investments
             </Typography>
 
@@ -166,13 +166,17 @@ const TotalSpent = ({ user }: TotalSpentProps) => {
           </Stack>
           <Stack mt={2} alignItems="center" spacing={0.5}>
             <IconifyIcon
-              icon="ic:round-check-circle"
-              color="success.main"
+              icon={percentageChange >= 0 ? 'ic:round-check-circle' : 'ic:round-close'}
+              color={percentageChange >= 0 ? 'success.main' : 'error.main'}
               fontSize="h6.fontSize"
               aria-hidden="true"
             />
-            <Typography variant="body1" color="success.main" fontWeight={700}>
-              On track
+            <Typography
+              variant="body1"
+              color={percentageChange >= 0 ? 'success.main' : 'error.main'}
+              fontWeight={700}
+            >
+              {percentageChange >= 0 ? 'On track' : 'Falling short'}
             </Typography>
           </Stack>
         </Box>

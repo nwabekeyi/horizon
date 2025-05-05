@@ -35,69 +35,65 @@ const TrendingCryptos = () => {
     let isMounted = true;
 
     const fetchCryptoPrices = async () => {
-      console.log('API call started:', new Date().toISOString());
-
       try {
         const endpoint = 'https://api.coingecko.com/api/v3/coins/markets';
         const params = new URLSearchParams({
           vs_currency: 'usd',
-          ids: 'bitcoin,ethereum,litecoin,bitcoin-cash', // Popular coins
           order: 'market_cap_desc',
-          per_page: '10',
+          per_page: '15',
           page: '1',
           sparkline: 'false',
         });
 
         const response = await fetch(`${endpoint}?${params}`);
         const fetchedData: CryptoData[] = await response.json();
-        if (!isMounted) {
-          console.log('Component unmounted, skipping state update');
-          return;
-        }
+        if (!isMounted) return;
+
         if (response.ok) {
           setData({ assets: fetchedData });
         } else {
           throw new Error('Failed to fetch cryptocurrency prices');
         }
       } catch (err: unknown) {
-        console.error('Error fetching crypto prices:', err);
-        if (!isMounted) {
-          console.log('Component unmounted, skipping error state update');
-          return;
-        }
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch crypto prices';
-        setError({
-          message: errorMessage,
-        });
-      } finally {
         if (isMounted) {
-          setLoading(false);
+          setError({ message: errorMessage });
         }
-        console.log('API call completed:', new Date().toISOString());
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchCryptoPrices();
-
-    // Poll every 60 seconds for real-time updates
     const interval = setInterval(fetchCryptoPrices, 60000);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
-      console.log('useEffect cleanup:', new Date().toISOString());
     };
   }, []);
 
+  // Auto-scroll every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (swiperRef.current && !swiperRef.current.destroyed) {
+        if (swiperRef.current.isEnd) {
+          swiperRef.current.slideTo(0); // go to beginning if at end
+        } else {
+          swiperRef.current.slideNext();
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handlePrev = () => {
-    if (swiperRef.current) {
-      swiperRef.current.slidePrev();
-    }
+    swiperRef.current?.slidePrev();
   };
 
   const handleNext = () => {
-    if (swiperRef.current) {
-      swiperRef.current.slideNext();
-    }
+    swiperRef.current?.slideNext();
   };
 
   return (

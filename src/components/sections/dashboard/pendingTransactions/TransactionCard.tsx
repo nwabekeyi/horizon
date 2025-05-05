@@ -18,7 +18,7 @@ const TransactionCard = ({ data, onAction }: TransactionCardProps) => {
     <Card sx={{ mb: 2.5, py: 1.75, borderRadius: 3.5, boxShadow: customShadows[1] }}>
       <Stack alignItems="center" justifyContent="space-between">
         <Stack spacing={1.5} alignItems="center" width="100%">
-          <CardContent sx={{ textAlign: 'center', width: '100%' }}>
+          <CardContent sx={{ width: '100%' }}>
             <Typography
               variant="body1"
               fontWeight={700}

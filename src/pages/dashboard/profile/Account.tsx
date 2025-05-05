@@ -3,21 +3,23 @@ import {
   Button,
   Card,
   IconButton,
-  Typography,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Typography,
+  InputAdornment,
 } from "@mui/material";
 import { FC, useReducer } from "react";
-import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
-import CustomModal from "components/base/modal"; // Adjust path to your CustomModal component
-import { User, PaymentDetail } from "utils/interfaces"; // Import existing User and PaymentDetail interfaces
-import { useApiRequest } from "hooks/useApi"; // Import the useApiRequest hook
-import { ENDPOINTS } from "utils/endpoints"; // Import the ENDPOINTS object
+import { FaEye, FaEdit, FaTrash, FaEyeSlash } from "react-icons/fa";
+import PaymentDetailsModal from "./modals/PaymentDetailsModal"; // Adjust path
+import DeleteConfirmationModal from "./modals/DeleteComfirmationModal"; // Adjust path
+import KycDetailsModal from "./modals/KycDetailsModal"; // Adjust path
+import TwoFAModal from "./modals/TwoFAModal"; // Adjust path
+import RecoveryEmailModal from "./modals/RecoveryEmailModal"; // Adjust path
+import CustomModal, { ChildrenBox } from "components/base/modal"; // Adjust path
+import { User, PaymentDetail } from "utils/interfaces"; // Adjust path
+import { useApiRequest } from "hooks/useApi"; // Adjust path
+import { ENDPOINTS, twoFA } from "utils/endpoints"; // Adjust path
 import { useDispatch } from "react-redux";
-import { addPaymentDetail } from "store/slices/userSlice"; // Adjust path to your userSlice
+import { addPaymentDetail, updateTwoFA, deletePaymentDetail } from "store/slices/userSlice"; // Adjust path
 
 // Define interfaces for API request and response
 interface PaymentDetailPayload {
@@ -45,9 +47,30 @@ interface DeletePaymentDetailResponse {
   paymentDetail?: PaymentDetail;
 }
 
+interface TwoFASetupPayload {
+  userId: string;
+  secret?: string; // For enable
+  password?: string; // For password confirmation
+}
+
+interface TwoFASetupResponse {
+  success: boolean;
+  message: string;
+}
+
+interface PasswordConfirmPayload {
+  userId: string;
+  password: string;
+}
+
+interface PasswordConfirmResponse {
+  success: boolean;
+  message: string;
+}
+
 // Component props
 interface AccountProps {
-  user: User | null; // Allow null for user
+  user: User | null;
 }
 
 // State interface
@@ -55,8 +78,14 @@ interface State {
   isPaymentModalOpen: boolean;
   isKycModalOpen: boolean;
   isTwoFAModalOpen: boolean;
+  isTwoFAConfirmationModalOpen: boolean;
   isRecoveryEmailModalOpen: boolean;
-  isDeleteModalOpen: boolean; // New state for delete confirmation modal
+  isDeleteModalOpen: boolean;
+  isPasswordConfirmModalOpen: boolean; // For password confirmation
+  twoFAUpdateRequested: boolean;
+  passwordConfirmed: boolean; // Tracks if password is confirmed
+  password: string; // Password input for confirmation
+  passwordError: string; // Password confirmation error
   paymentType: "fiat" | "crypto";
   paymentCurrency: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "";
   bankName: string;
@@ -72,19 +101,27 @@ interface State {
   kycError: string;
   twoFASecret: string;
   twoFAError: string;
+  twoFAResponseMessage: string;
   recoveryEmail: string;
   recoveryEmailError: string;
-  editingPaymentDetail: PaymentDetail | null; // Track the payment detail being edited
-  deletingPaymentDetailId: string | null; // Track the payment detail to be deleted
+  editingPaymentDetail: PaymentDetail | null;
+  deletingPaymentDetailId: string | null;
+  showPassword: boolean; // Toggle password visibility
 }
 
 // Action types
-type Action =
+export type Action =
   | { type: "SET_PAYMENT_MODAL_OPEN"; payload: boolean }
   | { type: "SET_KYC_MODAL_OPEN"; payload: boolean }
   | { type: "SET_TWO_FA_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_TWO_FA_CONFIRMATION_MODAL_OPEN"; payload: boolean }
   | { type: "SET_RECOVERY_EMAIL_MODAL_OPEN"; payload: boolean }
-  | { type: "SET_DELETE_MODAL_OPEN"; payload: boolean } // New action for delete modal
+  | { type: "SET_DELETE_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_PASSWORD_CONFIRM_MODAL_OPEN"; payload: boolean }
+  | { type: "SET_TWO_FA_UPDATE_REQUESTED"; payload: boolean }
+  | { type: "SET_PASSWORD_CONFIRMED"; payload: boolean }
+  | { type: "SET_PASSWORD"; payload: string }
+  | { type: "SET_PASSWORD_ERROR"; payload: string }
   | { type: "SET_PAYMENT_TYPE"; payload: "fiat" | "crypto" }
   | { type: "SET_PAYMENT_CURRENCY"; payload: "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "" }
   | { type: "SET_BANK_NAME"; payload: string }
@@ -100,22 +137,31 @@ type Action =
   | { type: "SET_KYC_ERROR"; payload: string }
   | { type: "SET_TWO_FA_SECRET"; payload: string }
   | { type: "SET_TWO_FA_ERROR"; payload: string }
+  | { type: "SET_TWO_FA_RESPONSE_MESSAGE"; payload: string }
   | { type: "SET_RECOVERY_EMAIL"; payload: string }
   | { type: "SET_RECOVERY_EMAIL_ERROR"; payload: string }
   | { type: "SET_EDITING_PAYMENT_DETAIL"; payload: PaymentDetail | null }
-  | { type: "SET_DELETING_PAYMENT_DETAIL_ID"; payload: string | null } // New action for delete ID
+  | { type: "SET_DELETING_PAYMENT_DETAIL_ID"; payload: string | null }
+  | { type: "SET_SHOW_PASSWORD"; payload: boolean }
   | { type: "RESET_PAYMENT_FORM" }
   | { type: "RESET_KYC_FORM" }
   | { type: "RESET_TWO_FA_FORM" }
-  | { type: "RESET_RECOVERY_EMAIL_FORM" };
+  | { type: "RESET_RECOVERY_EMAIL_FORM" }
+  | { type: "RESET_PASSWORD_FORM" };
 
 // Initial state
 const initialState: State = {
   isPaymentModalOpen: false,
   isKycModalOpen: false,
   isTwoFAModalOpen: false,
+  isTwoFAConfirmationModalOpen: false,
   isRecoveryEmailModalOpen: false,
-  isDeleteModalOpen: false, // Initialize delete modal state
+  isDeleteModalOpen: false,
+  isPasswordConfirmModalOpen: false,
+  twoFAUpdateRequested: false,
+  passwordConfirmed: false,
+  password: "",
+  passwordError: "",
   paymentType: "fiat",
   paymentCurrency: "",
   bankName: "",
@@ -131,10 +177,12 @@ const initialState: State = {
   kycError: "",
   twoFASecret: "",
   twoFAError: "",
+  twoFAResponseMessage: "",
   recoveryEmail: "",
   recoveryEmailError: "",
   editingPaymentDetail: null,
-  deletingPaymentDetailId: null, // Initialize deleting ID
+  deletingPaymentDetailId: null,
+  showPassword: false,
 };
 
 // Reducer function
@@ -146,10 +194,22 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, isKycModalOpen: action.payload };
     case "SET_TWO_FA_MODAL_OPEN":
       return { ...state, isTwoFAModalOpen: action.payload };
+    case "SET_TWO_FA_CONFIRMATION_MODAL_OPEN":
+      return { ...state, isTwoFAConfirmationModalOpen: action.payload };
     case "SET_RECOVERY_EMAIL_MODAL_OPEN":
       return { ...state, isRecoveryEmailModalOpen: action.payload };
     case "SET_DELETE_MODAL_OPEN":
       return { ...state, isDeleteModalOpen: action.payload };
+    case "SET_PASSWORD_CONFIRM_MODAL_OPEN":
+      return { ...state, isPasswordConfirmModalOpen: action.payload };
+    case "SET_TWO_FA_UPDATE_REQUESTED":
+      return { ...state, twoFAUpdateRequested: action.payload };
+    case "SET_PASSWORD_CONFIRMED":
+      return { ...state, passwordConfirmed: action.payload };
+    case "SET_PASSWORD":
+      return { ...state, password: action.payload };
+    case "SET_PASSWORD_ERROR":
+      return { ...state, passwordError: action.payload };
     case "SET_PAYMENT_TYPE":
       return { ...state, paymentType: action.payload };
     case "SET_PAYMENT_CURRENCY":
@@ -180,6 +240,8 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, twoFASecret: action.payload };
     case "SET_TWO_FA_ERROR":
       return { ...state, twoFAError: action.payload };
+    case "SET_TWO_FA_RESPONSE_MESSAGE":
+      return { ...state, twoFAResponseMessage: action.payload };
     case "SET_RECOVERY_EMAIL":
       return { ...state, recoveryEmail: action.payload };
     case "SET_RECOVERY_EMAIL_ERROR":
@@ -188,6 +250,8 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, editingPaymentDetail: action.payload };
     case "SET_DELETING_PAYMENT_DETAIL_ID":
       return { ...state, deletingPaymentDetailId: action.payload };
+    case "SET_SHOW_PASSWORD":
+      return { ...state, showPassword: action.payload };
     case "RESET_PAYMENT_FORM":
       return {
         ...state,
@@ -215,12 +279,21 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         twoFASecret: "",
         twoFAError: "",
+        twoFAResponseMessage: "",
+        isTwoFAConfirmationModalOpen: false,
       };
     case "RESET_RECOVERY_EMAIL_FORM":
       return {
         ...state,
         recoveryEmail: "",
         recoveryEmailError: "",
+      };
+    case "RESET_PASSWORD_FORM":
+      return {
+        ...state,
+        password: "",
+        passwordError: "",
+        showPassword: false,
       };
     default:
       return state;
@@ -235,10 +308,24 @@ const Account: FC<AccountProps> = ({ user }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // API hook for payment details
-  const { callApi, loading, error: apiError } = useApiRequest<
-    PaymentDetailResponse | DeletePaymentDetailResponse,
-    PaymentDetailPayload
-  >();
+  const {
+    callApi: callPaymentApi,
+    loading: paymentLoading,
+    error: paymentApiError,
+  } = useApiRequest<PaymentDetailResponse | DeletePaymentDetailResponse, PaymentDetailPayload>();
+
+  // API hook for 2FA setup
+  const {
+    callApi: callTwoFAApi,
+    loading: twoFALoading,
+    error: twoFAApiError,
+  } = useApiRequest<TwoFASetupResponse, TwoFASetupPayload>();
+
+  // API hook for password confirmation
+  const {
+    callApi: callPasswordApi,
+    loading: passwordLoading,
+  } = useApiRequest<PasswordConfirmResponse, PasswordConfirmPayload>();
 
   // Pre-fill payment modal when editing
   const handleEditPaymentDetail = (detail: PaymentDetail) => {
@@ -264,30 +351,26 @@ const Account: FC<AccountProps> = ({ user }) => {
 
   // Close delete confirmation modal
   const handleCloseDeleteModal = () => {
-    dispatch({ type: "SET_DELETE_MODAL_OPEN", payload: false });
     dispatch({ type: "SET_DELETING_PAYMENT_DETAIL_ID", payload: null });
+    dispatch({ type: "SET_DELETE_MODAL_OPEN", payload: false });
   };
 
   // Delete payment detail
   const handleDeletePaymentDetail = async () => {
     if (!state.deletingPaymentDetailId) return;
     try {
-      const response = await callApi({
+      const response = await callPaymentApi({
         url: `${ENDPOINTS.PAYMENT_DETAILS}/delete/${state.deletingPaymentDetailId}`,
         method: "DELETE",
       });
       if (response.success) {
-        // Update Redux store (assuming a deletePaymentDetail action exists)
-        reduxDispatch({
-          type: "user/deletePaymentDetail",
-          payload: state.deletingPaymentDetailId,
-        });
+        reduxDispatch(deletePaymentDetail(state.deletingPaymentDetailId));
         handleCloseDeleteModal();
       } else {
         dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to delete payment detail" });
       }
     } catch (err: unknown) {
-      const errorMessage = apiError?.message || "Failed to delete payment detail";
+      const errorMessage = paymentApiError?.message || "Failed to delete payment detail";
       dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
     }
   };
@@ -311,10 +394,65 @@ const Account: FC<AccountProps> = ({ user }) => {
     dispatch({ type: "RESET_TWO_FA_FORM" });
   };
 
+  const handleTwoFAConfirmationClose = () => {
+    dispatch({ type: "SET_TWO_FA_CONFIRMATION_MODAL_OPEN", payload: false });
+    dispatch({ type: "SET_TWO_FA_MODAL_OPEN", payload: false });
+    dispatch({ type: "RESET_TWO_FA_FORM" });
+  };
+
   const handleRecoveryEmailModalOpen = () => dispatch({ type: "SET_RECOVERY_EMAIL_MODAL_OPEN", payload: true });
   const handleRecoveryEmailModalClose = () => {
     dispatch({ type: "SET_RECOVERY_EMAIL_MODAL_OPEN", payload: false });
     dispatch({ type: "RESET_RECOVERY_EMAIL_FORM" });
+  };
+
+  const handlePasswordConfirmModalOpen = () => dispatch({ type: "SET_PASSWORD_CONFIRM_MODAL_OPEN", payload: true });
+  const handlePasswordConfirmModalClose = () => {
+    dispatch({ type: "SET_PASSWORD_CONFIRM_MODAL_OPEN", payload: false });
+    dispatch({ type: "RESET_PASSWORD_FORM" });
+  };
+
+  // Update 2FA secret handler
+  const handleTwoFAUpdateOpen = () => {
+    handlePasswordConfirmModalOpen();
+  };
+
+  // Password confirmation handler
+  const handlePasswordConfirm = async () => {
+    if (!state.password) {
+      dispatch({ type: "SET_PASSWORD_ERROR", payload: "Please enter your password" });
+      return;
+    }
+    if (!user?._id) {
+      dispatch({ type: "SET_PASSWORD_ERROR", payload: "User ID is not available" });
+      handlePasswordConfirmModalClose();
+      return;
+    }
+
+    try {
+      const response = await callPasswordApi({
+        url: ENDPOINTS.CONFIRM_PASSWORD,
+        method: "POST",
+        body: { userId: user._id, password: state.password },
+      });
+
+      if (response.success) {
+        dispatch({ type: "SET_PASSWORD_CONFIRMED", payload: true });
+        dispatch({ type: "SET_TWO_FA_MODAL_OPEN", payload: true });
+        dispatch({ type: "SET_TWO_FA_UPDATE_REQUESTED", payload: true });
+        handlePasswordConfirmModalClose();
+      } else {
+        dispatch({ type: "SET_PASSWORD_ERROR", payload: response.message || "Invalid password" });
+      }
+    } catch (err: unknown) {
+      const errorMessage = paymentApiError?.message || "Failed to confirm password";
+      dispatch({ type: "SET_PASSWORD_ERROR", payload: errorMessage });
+    }
+  };
+
+  // Toggle password visibility
+  const handleTogglePassword = () => {
+    dispatch({ type: "SET_SHOW_PASSWORD", payload: !state.showPassword });
   };
 
   // Validation functions
@@ -353,9 +491,13 @@ const Account: FC<AccountProps> = ({ user }) => {
     return true;
   };
 
-  const validateTwoFASecret = (): boolean => {
-    if (!state.twoFASecret) {
+  const validateTwoFAInput = (isEnabling: boolean): boolean => {
+    if (isEnabling && !state.twoFASecret) {
       dispatch({ type: "SET_TWO_FA_ERROR", payload: "Please enter a 2FA secret" });
+      return false;
+    }
+    if (!isEnabling && !state.twoFASecret) {
+      dispatch({ type: "SET_TWO_FA_ERROR", payload: "Please enter your password" });
       return false;
     }
     dispatch({ type: "SET_TWO_FA_ERROR", payload: "" });
@@ -378,7 +520,7 @@ const Account: FC<AccountProps> = ({ user }) => {
 
   // Form submission handlers
   const handlePaymentSubmit = async (): Promise<void> => {
-    if (loading) return;
+    if (paymentLoading) return;
     if (!validatePaymentDetails()) return;
     if (!user?._id) {
       dispatch({ type: "SET_PAYMENT_ERROR", payload: "User ID is not available" });
@@ -410,7 +552,7 @@ const Account: FC<AccountProps> = ({ user }) => {
         : ENDPOINTS.addPaymentDetails;
       const method = isEditing ? "PUT" : "POST";
 
-      const response = await callApi({
+      const response = await callPaymentApi({
         url,
         method,
         body: payload,
@@ -422,7 +564,7 @@ const Account: FC<AccountProps> = ({ user }) => {
         dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to save payment details" });
       }
     } catch (err: unknown) {
-      const errorMessage = apiError?.message || "Failed to save payment details";
+      const errorMessage = paymentApiError?.message || "Failed to save payment details";
       dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
     }
   };
@@ -438,10 +580,78 @@ const Account: FC<AccountProps> = ({ user }) => {
     handleKycModalClose();
   };
 
-  const handleTwoFASubmit = (): void => {
-    if (!validateTwoFASecret()) return;
-    console.log("2FA Secret:", state.twoFASecret);
-    handleTwoFAModalClose();
+  const handleTwoFASubmit = async (): Promise<void> => {
+    if (twoFALoading) return;
+    if (!user?._id) {
+      dispatch({ type: "SET_TWO_FA_ERROR", payload: "User ID is not available" });
+      return;
+    }
+
+    const isEnabling = !(user && user.twoFA && user.twoFA.enabled);
+    if (!validateTwoFAInput(isEnabling)) return;
+
+    try {
+      let response: TwoFASetupResponse;
+
+      if (isEnabling) {
+        // Enable 2FA
+        const payload: TwoFASetupPayload = {
+          userId: user._id,
+          secret: state.twoFASecret,
+        };
+        response = await callTwoFAApi({
+          url: `${twoFA}/enable`,
+          method: "POST",
+          body: payload,
+        });
+        if (response.success) {
+          reduxDispatch(updateTwoFA({
+            enabled: true,
+            secret: state.twoFASecret,
+          }));
+        }
+      } else {
+        // Disable 2FA: Confirm password first
+        const confirmPayload: TwoFASetupPayload = {
+          userId: user._id,
+          password: state.twoFASecret, // Using twoFASecret for password
+        };
+        const confirmResponse = await callTwoFAApi({
+          url: ENDPOINTS.CONFIRM_PASSWORD,
+          method: "POST",
+          body: confirmPayload,
+        });
+        if (!confirmResponse.success) {
+          dispatch({ type: "SET_TWO_FA_ERROR", payload: confirmResponse.message || "Invalid password" });
+          return;
+        }
+
+        // Password confirmed, disable 2FA
+        const disablePayload: TwoFASetupPayload = {
+          userId: user._id,
+        };
+        response = await callTwoFAApi({
+          url: `${twoFA}/disable`,
+          method: "DELETE",
+          body: disablePayload,
+        });
+        if (response.success) {
+          reduxDispatch(updateTwoFA({
+            enabled: false,
+            secret: "",
+          }));
+        }
+      }
+
+      dispatch({
+        type: "SET_TWO_FA_RESPONSE_MESSAGE",
+        payload: response.message || (isEnabling ? "2FA enabled successfully" : "2FA disabled successfully"),
+      });
+      dispatch({ type: "SET_TWO_FA_CONFIRMATION_MODAL_OPEN", payload: true });
+    } catch (err: unknown) {
+      const errorMessage = twoFAApiError?.message || `Failed to ${isEnabling ? "enable" : "disable"} 2FA`;
+      dispatch({ type: "SET_TWO_FA_ERROR", payload: errorMessage });
+    }
   };
 
   const handleRecoveryEmailSubmit = (): void => {
@@ -475,10 +685,10 @@ const Account: FC<AccountProps> = ({ user }) => {
         <Typography variant="h6" fontWeight="medium" color="text.primary">
           Payment Details
         </Typography>
-        {user && user.paymentDetails && user.paymentDetails.length > 0 ? (
+        {user?.paymentDetails && user.paymentDetails.length > 0 ? (
           user.paymentDetails.map((detail, index) => (
             <Box
-              key={index}
+              key={detail._id || index}
               sx={{
                 p: 2,
                 border: "1px solid",
@@ -569,7 +779,7 @@ const Account: FC<AccountProps> = ({ user }) => {
             </Button>
           </Box>
         )}
-        {user && user.paymentDetails && user.paymentDetails.length > 0 && (
+        {user?.paymentDetails && user.paymentDetails.length > 0 && (
           <Button
             variant="contained"
             color="primary"
@@ -603,23 +813,41 @@ const Account: FC<AccountProps> = ({ user }) => {
         </Typography>
         <Typography variant="body2" fontWeight="medium">
           <strong>Status:</strong>{" "}
-          {user && user.twoFA && user.twoFA.enabled ? "Enabled" : "Disabled"}
+          {user?.twoFA?.enabled ? "Enabled" : "Disabled"}
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleTwoFAModalOpen}
-          sx={{
-            alignSelf: "flex-start",
-            textTransform: "none",
-            fontWeight: "medium",
-            px: 3,
-            py: 1,
-          }}
-          aria-label={user && user.twoFA && user.twoFA.enabled ? "Disable 2FA" : "Enable 2FA"}
-        >
-          {user && user.twoFA && user.twoFA.enabled ? "Disable 2FA" : "Enable 2FA"}
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleTwoFAModalOpen}
+            sx={{
+              textTransform: "none",
+              fontWeight: "medium",
+              px: 3,
+              py: 1,
+            }}
+            aria-label={user?.twoFA?.enabled ? "Disable 2FA" : "Enable 2FA"}
+          >
+            {user?.twoFA?.enabled ? "Disable 2FA" : "Enable 2FA"}
+          </Button>
+          {user?.twoFA?.enabled && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleTwoFAUpdateOpen}
+              sx={{
+                textTransform: "none",
+                fontWeight: "medium",
+                px: 3,
+                py: 1,
+                color: 'blue'
+              }}
+              aria-label="Update 2FA Secret"
+            >
+              Update 2FA Secret
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {/* KYC Details */}
@@ -635,7 +863,7 @@ const Account: FC<AccountProps> = ({ user }) => {
         <Typography variant="h6" fontWeight="medium" color="text.primary">
           KYC Details
         </Typography>
-        {user && user.kyc && user.kyc.status ? (
+        {user?.kyc?.status ? (
           <Box
             sx={{
               p: 2,
@@ -768,248 +996,106 @@ const Account: FC<AccountProps> = ({ user }) => {
       </Box>
 
       {/* Modals */}
-      {/* Payment Details Modal */}
-      <CustomModal
+      <PaymentDetailsModal
         open={state.isPaymentModalOpen}
-        title={state.editingPaymentDetail ? "Edit Payment Details" : "Add Payment Details"}
+        editingPaymentDetail={state.editingPaymentDetail}
+        paymentType={state.paymentType}
+        paymentCurrency={state.paymentCurrency}
+        bankName={state.bankName}
+        accountNumber={state.accountNumber}
+        accountName={state.accountName}
+        cryptoAddress={state.cryptoAddress}
+        network={state.network}
+        paymentError={state.paymentError}
+        loading={paymentLoading}
+        apiError={paymentApiError}
+        dispatch={dispatch}
         onCancel={handlePaymentModalClose}
         onConfirm={handlePaymentSubmit}
-      >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel id="payment-type-label">Payment Type</InputLabel>
-            <Select
-              labelId="payment-type-label"
-              value={state.paymentType}
-              label="Payment Type"
-              onChange={(e) => dispatch({ type: "SET_PAYMENT_TYPE", payload: e.target.value as "fiat" | "crypto" })}
-              aria-label="Select payment type"
-            >
-              <MenuItem value="fiat">Fiat</MenuItem>
-              <MenuItem value="crypto">Crypto</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel id="currency-label">Currency</InputLabel>
-            <Select
-              labelId="currency-label"
-              value={state.paymentCurrency}
-              label="Currency"
-              onChange={(e) =>
-                dispatch({
-                  type: "SET_PAYMENT_CURRENCY",
-                  payload: e.target.value as "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "",
-                })
-              }
-              aria-label="Select currency"
-            >
-              {state.paymentType === "fiat"
-                ? ["usd", "cad", "eur", "gbp"].map((curr) => (
-                    <MenuItem key={curr} value={curr}>
-                      {curr.toUpperCase()}
-                    </MenuItem>
-                  ))
-                : ["btc", "eth", "usdt"].map((curr) => (
-                    <MenuItem key={curr} value={curr}>
-                      {curr.toUpperCase()}
-                    </MenuItem>
-                  ))}
-            </Select>
-          </FormControl>
-          {state.paymentType === "fiat" ? (
-            <>
-              <TextField
-                fullWidth
-                label="Bank Name"
-                value={state.bankName}
-                onChange={(e) => dispatch({ type: "SET_BANK_NAME", payload: e.target.value })}
-                aria-label="Bank name"
-              />
-              <TextField
-                fullWidth
-                label="Account Number"
-                value={state.accountNumber}
-                onChange={(e) => dispatch({ type: "SET_ACCOUNT_NUMBER", payload: e.target.value })}
-                aria-label="Account number"
-              />
-              <TextField
-                fullWidth
-                label="Account Name"
-                value={state.accountName}
-                onChange={(e) => dispatch({ type: "SET_ACCOUNT_NAME", payload: e.target.value })}
-                aria-label="Account name"
-              />
-            </>
-          ) : (
-            <>
-              <TextField
-                fullWidth
-                label="Crypto Address"
-                value={state.cryptoAddress}
-                onChange={(e) => dispatch({ type: "SET_CRYPTO_ADDRESS", payload: e.target.value })}
-                aria-label="Crypto address"
-              />
-              <FormControl fullWidth>
-                <InputLabel id="network-label">Network (Optional)</InputLabel>
-                <Select
-                  labelId="network-label"
-                  value={state.network}
-                  label="Network (Optional)"
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_NETWORK",
-                      payload: e.target.value as "erc20" | "trc20" | "bep20" | "polygon" | "solana" | "",
-                    })
-                  }
-                  aria-label="Select network"
-                >
-                  <MenuItem value="">None</MenuItem>
-                  {["erc20", "trc20", "bep20", "polygon", "solana"].map((net) => (
-                    <MenuItem key={net} value={net}>
-                      {net.toUpperCase()}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </>
-          )}
-          {(state.paymentError || apiError) && (
-            <Typography variant="caption" color="error">
-              {state.paymentError || apiError?.message}
-            </Typography>
-          )}
-          {loading && (
-            <Typography variant="caption" color="text.secondary">
-              Submitting...
-            </Typography>
-          )}
-        </Box>
-      </CustomModal>
+      />
 
-      {/* Delete Confirmation Modal */}
-      <CustomModal
+      <DeleteConfirmationModal
         open={state.isDeleteModalOpen}
-        title="Confirm Delete"
+        paymentError={state.paymentError}
         onCancel={handleCloseDeleteModal}
         onConfirm={handleDeletePaymentDetail}
-      >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Typography variant="body1" color="text.primary">
-            Are you sure you want to delete this payment detail? This action cannot be undone.
-          </Typography>
-          {state.paymentError && (
-            <Typography variant="caption" color="error">
-              {state.paymentError}
-            </Typography>
-          )}
-        </Box>
-      </CustomModal>
+      />
 
-      {/* KYC Details Modal */}
-      <CustomModal
+      <KycDetailsModal
         open={state.isKycModalOpen}
-        title="Add KYC Details"
+        kycDocumentType={state.kycDocumentType}
+        kycError={state.kycError}
+        dispatch={dispatch}
         onCancel={handleKycModalClose}
         onConfirm={handleKycSubmit}
-      >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel id="document-type-label">Document Type</InputLabel>
-            <Select
-              labelId="document-type-label"
-              value={state.kycDocumentType}
-              label="Document Type"
-              onChange={(e) => dispatch({ type: "SET_KYC_DOCUMENT_TYPE", payload: e.target.value })}
-              aria-label="Select document type"
-            >
-              <MenuItem value="driver_license">Driver's License</MenuItem>
-              <MenuItem value="passport">Passport</MenuItem>
-              <MenuItem value="national_id">National ID Card</MenuItem>
-            </Select>
-          </FormControl>
-          <Typography variant="body2" fontWeight="medium" color="text.primary">
-            Document Front
-          </Typography>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => dispatch({ type: "SET_DOCUMENT_FRONT", payload: e.target.files?.[0] || null })}
-            style={{ marginBottom: 16 }}
-            aria-label="Upload document front"
-          />
-          <Typography variant="body2" fontWeight="medium" color="text.primary">
-            Document Back
-          </Typography>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => dispatch({ type: "SET_DOCUMENT_BACK", payload: e.target.files?.[0] || null })}
-            style={{ marginBottom: 16 }}
-            aria-label="Upload document back"
-          />
-          <Typography variant="body2" fontWeight="medium" color="text.primary">
-            Address Proof
-          </Typography>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => dispatch({ type: "SET_ADDRESS_PROOF", payload: e.target.files?.[0] || null })}
-            style={{ marginBottom: 16 }}
-            aria-label="Upload address proof"
-          />
-          {state.kycError && (
-            <Typography variant="caption" color="error">
-              {state.kycError}
-            </Typography>
-          )}
-        </Box>
-      </CustomModal>
+      />
 
-      {/* 2FA Modal */}
-      <CustomModal
+      <TwoFAModal
         open={state.isTwoFAModalOpen}
-        title={user && user.twoFA && user.twoFA.enabled ? "Disable 2FA" : "Enable 2FA"}
+        user={user}
+        twoFASecret={state.twoFASecret}
+        twoFAError={state.twoFAError}
+        showConfirmation={state.isTwoFAConfirmationModalOpen}
+        responseMessage={state.twoFAResponseMessage}
+        loading={twoFALoading}
+        apiError={twoFAApiError}
+        showUpdateFlow={state.twoFAUpdateRequested}
+        passwordConfirmed={state.passwordConfirmed}
+        dispatch={dispatch}
         onCancel={handleTwoFAModalClose}
         onConfirm={handleTwoFASubmit}
-      >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <TextField
-            fullWidth
-            label="2FA Secret"
-            value={state.twoFASecret}
-            onChange={(e) => dispatch({ type: "SET_TWO_FA_SECRET", payload: e.target.value })}
-            aria-label="2FA secret"
-          />
-          {state.twoFAError && (
-            <Typography variant="caption" color="error">
-              {state.twoFAError}
-            </Typography>
-          )}
-        </Box>
-      </CustomModal>
+        onConfirmationClose={handleTwoFAConfirmationClose}
+      />
 
-      {/* Recovery Email Modal */}
-      <CustomModal
+      <RecoveryEmailModal
         open={state.isRecoveryEmailModalOpen}
-        title="Add Recovery Email"
+        recoveryEmail={state.recoveryEmail}
+        recoveryEmailError={state.recoveryEmailError}
+        dispatch={dispatch}
         onCancel={handleRecoveryEmailModalClose}
         onConfirm={handleRecoveryEmailSubmit}
+      />
+
+      <CustomModal
+        open={state.isPasswordConfirmModalOpen}
+        title="Confirm Password"
+        onCancel={handlePasswordConfirmModalClose}
+        onConfirm={handlePasswordConfirm}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <ChildrenBox>
+          <Typography variant="body1" color="text.primary">
+            Please enter your password to proceed with updating your 2FA secret.
+          </Typography>
           <TextField
             fullWidth
-            label="Recovery Email"
-            type="email"
-            value={state.recoveryEmail}
-            onChange={(e) => dispatch({ type: "SET_RECOVERY_EMAIL", payload: e.target.value })}
-            aria-label="Recovery email"
+            label="Password"
+            type={state.showPassword ? "text" : "password"}
+            value={state.password}
+            onChange={(e) => dispatch({ type: "SET_PASSWORD", payload: e.target.value })}
+            aria-label="Confirm password"
+            disabled={passwordLoading}
+            error={!!state.passwordError}
+            helperText={state.passwordError}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={handleTogglePassword}
+                    aria-label={state.showPassword ? "Hide password" : "Show password"}
+                    edge="end"
+                  >
+                    {state.showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
-          {state.recoveryEmailError && (
-            <Typography variant="caption" color="error">
-              {state.recoveryEmailError}
+          {passwordLoading && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
+              Verifying password...
             </Typography>
           )}
-        </Box>
+        </ChildrenBox>
       </CustomModal>
     </Card>
   );

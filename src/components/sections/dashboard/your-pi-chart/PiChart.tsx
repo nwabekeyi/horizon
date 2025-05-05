@@ -25,7 +25,6 @@ echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
 const PiChart = ({ chartRef, data, ...rest }: PiChartProps) => {
   const theme = useTheme();
 
-  // Define a palette of distinct colors
   const colorPalette = [
     theme.palette.primary.main,
     theme.palette.secondary.main,
@@ -51,10 +50,9 @@ const PiChart = ({ chartRef, data, ...rest }: PiChartProps) => {
           type: 'pie',
           radius: '80%',
           data: data.map((item, index) => ({
-            value: item.value,
+            value: item.visible ? item.value : 0,
             name: item.name,
             itemStyle: {
-              // Assign a unique color from the palette, cycling if needed
               color: colorPalette[index % colorPalette.length],
             },
           })),

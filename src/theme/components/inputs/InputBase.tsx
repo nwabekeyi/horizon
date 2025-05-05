@@ -1,12 +1,14 @@
 import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
 import { Components } from '@mui/material/styles';
+import { blue
 
+ } from 'theme/colors';
 const InputBase: Components<Omit<Theme, 'components'>>['MuiInputBase'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       border: 1,
       borderStyle: 'solid',
-      borderColor: theme.palette.info.main,
+      borderColor: theme.palette.text.primary,
       borderRadius: theme.shape.borderRadius,
       backgroundColor: `${theme.palette.info.lighter} !important`,
       fontSize: theme.typography.subtitle2.fontSize,
@@ -22,8 +24,8 @@ const InputBase: Components<Omit<Theme, 'components'>>['MuiInputBase'] = {
         display: 'none',
       },
     }),
-    colorSecondary: ({ theme }) => ({
-      backgroundColor: `${theme.palette.info.dark} !important`,
+    colorSecondary: () => ({
+      backgroundColor: `${blue[500]} !important`,
     }),
     sizeSmall: ({ theme }) => ({
       padding: theme.spacing(1, 1.25),

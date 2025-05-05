@@ -15,7 +15,7 @@ export const gray = {
 
 
 export const blue = {
-  500: '#4481EB',
+  500: '#010517',
 };
 
 export const skyblue = {

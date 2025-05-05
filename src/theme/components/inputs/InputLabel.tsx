@@ -1,6 +1,7 @@
 import { Theme } from '@mui/material/styles';
 import { Components } from '@mui/material/styles';
 
+
 const InputLabel: Components<Omit<Theme, 'components'>>['MuiInputLabel'] = {
   defaultProps: {
     shrink: true,

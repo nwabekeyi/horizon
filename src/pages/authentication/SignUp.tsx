@@ -243,7 +243,7 @@ const SignUp = () => {
         <Button
           variant="text"
           component={Link}
-          href="/"
+          href="https://247activetrading.vercel.app"
           sx={{ ml: -1.75, pl: 1, pr: 2 }}
           startIcon={
             <IconifyIcon

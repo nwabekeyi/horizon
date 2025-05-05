@@ -1,6 +1,7 @@
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -16,7 +17,7 @@ const Footer = () => {
       fontWeight={500}
     >
       © {currentYear} {' '}
-      <Link href="/"  fontWeight={600}>
+      <Link href="/"  fontWeight={600} color='info.darker'>
         247AT
       </Link>
     </Typography>

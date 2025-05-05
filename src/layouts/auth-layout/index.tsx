@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import Image from 'components/base/Image';
 import Logo from 'assets/images/logo-white.png';
 import { useNavigate } from 'react-router-dom';
-
+import { blue } from 'theme/colors';
 
 
 const AuthLayout = () => {
@@ -28,7 +28,7 @@ const goToHome = () => {
         justifyContent="center"
         display={{ xs: 'none', md: 'flex' }}
         sx={(theme) => ({
-          backgroundColor: 'blue',
+          backgroundColor:  blue[500],
           backgroundRepeat: 'no-repeat',
           backgroundSize: 'cover',
           backgroundPosition: 'center',

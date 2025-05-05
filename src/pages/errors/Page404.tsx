@@ -1,6 +1,7 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { FC } from "react";
 import { NavLink } from "react-router-dom";
+import { FiAlertTriangle } from "react-icons/fi"; // Import a suitable icon
 
 const Page404: FC = () => {
   const theme = useTheme();
@@ -14,13 +15,10 @@ const Page404: FC = () => {
       flexDirection="column"
       justifyContent="center"
     >
-      <Box maxWidth={350}>
-        <img
-          src="/static/illustration/error-page.svg"
-          width="100%"
-          alt="Error 404"
-        />
+      <Box color={theme.palette.error.main}>
+        <FiAlertTriangle size={100} />
       </Box>
+
       <Typography variant="h2" fontWeight={700} color="primary.main" mt={3}>
         Ooops... 404!
       </Typography>
@@ -29,7 +27,7 @@ const Page404: FC = () => {
       </Typography>
 
       <NavLink
-        to="/dashboard"
+        to="/"
         style={{
           display: "block",
           marginTop: "1.5rem",
@@ -38,7 +36,7 @@ const Page404: FC = () => {
           color: theme.palette.primary.main,
         }}
       >
-        Back to Dashboard
+        Back to Home
       </NavLink>
     </Box>
   );

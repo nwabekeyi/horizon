@@ -175,7 +175,7 @@ const SignIn = () => {
       </Box>
 
       <Box width={1}>
-        <Typography variant="h3">{forgotPassword ? 'Forgot Password' : 'Sign In'}</Typography>
+        <Typography color='info.darker' variant="h3">{forgotPassword ? 'Forgot Password' : 'Sign In'}</Typography>
         <Typography mt={1.5} variant="body2" color="text.disabled">
           {forgotPassword
             ? 'Enter your email to reset your password.'
@@ -296,6 +296,7 @@ const SignIn = () => {
                   onClick={() => setForgotPassword(true)}
                   fontSize="body2.fontSize"
                   fontWeight={600}
+                  color='info.darker'
                 >
                   Forgot password?
                 </Link>
@@ -327,7 +328,7 @@ const SignIn = () => {
             letterSpacing={0.25}
           >
             Not registered yet?{' '}
-            <Link href={paths.signup} color="primary.main" fontWeight={600}>
+            <Link href={paths.signup} color="info.darker" fontWeight={600}>
               Create an Account
             </Link>
           </Typography>

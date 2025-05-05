@@ -1,6 +1,6 @@
 import { Theme } from '@mui/material/styles'; // Corrected import path for Theme
 import { Components } from '@mui/material/styles';
-
+import { blue } from 'theme/colors';
 const Button: Components<Omit<Theme, 'components'>>['MuiButton'] = {
   defaultProps: {
     disableElevation: true,
@@ -18,13 +18,13 @@ const Button: Components<Omit<Theme, 'components'>>['MuiButton'] = {
     }),
     containedPrimary: ({ theme }) => ({
       color: theme.palette.info.light,
-      backgroundColor: theme.palette.primary.main,
+      backgroundColor: blue[500],
       '&:hover': { backgroundColor: theme.palette.primary.main },
     }),
     containedSecondary: ({ theme }) => ({
       color: theme.palette.text.primary,
       backgroundColor: theme.palette.info.dark,
-      '&:hover': { backgroundColor: theme.palette.info.dark },
+      '&:hover': { backgroundColor: theme.palette.info.main },
     }),
     sizeLarge: ({ theme }) => ({
       padding: theme.spacing(1.25, 3),

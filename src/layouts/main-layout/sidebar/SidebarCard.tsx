@@ -45,7 +45,7 @@ const SidebarCard = () => {
     >
       <Logo />
       <Button sx={{ color: 'info.lighter', fontWeight: 700 }}>Upgrade your Income</Button>
-      <Typography variant="body2" color="info.darker" lineHeight={1.75}>
+      <Typography variant="body2" color="info.main" lineHeight={1.75}>
         make your dream a reality <br />
         invest and earn
       </Typography>

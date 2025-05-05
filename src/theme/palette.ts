@@ -58,7 +58,7 @@ const palette: PaletteOptions = {
     light: white[200],
     main: white[300],
     dark: white[400],
-    darker: white[500],
+    darker: blue[500],
   },
   success: {
     main: green[500],

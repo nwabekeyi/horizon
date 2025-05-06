@@ -91,7 +91,7 @@ export const useInvestmentSteps = ({
   paymentProofDropzone,
   setInvestmentType,
   setIndustry,
-  setSelectedCompany,
+  // setSelectedCompany,
   setAmount,
   setFiatCurrency,
   setCryptoType,

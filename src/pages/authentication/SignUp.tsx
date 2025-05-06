@@ -224,9 +224,9 @@ const SignUp = () => {
     if (forgotPassword) setForgotPassword(false); // Reset to sign-up form after forgot password success
   };
 
-  // Show progress loader while API call is pending
+  // Show  loader while API call is pending
   if (loading) {
-    return <Progress />;
+    return <Box sx={{width: '100%', display:'flex', justifyContent:'center', alignItems: 'center'}}><Progress /></Box>;
   }
 
   return (
@@ -266,7 +266,13 @@ const SignUp = () => {
 
         <Box component="form" onSubmit={handleSubmit}>
           {registrationFilled ? (
-            <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
+
+            <>
+            <Typography variant="body2" color="text.secondary" mb={2} textAlign="center">
+              Please check your email inbox or spam folder for the PIN we sent you.
+            </Typography>
+
+                 <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
               {pin.map((digit, index) => (
                 <TextField
                   key={index}
@@ -288,6 +294,7 @@ const SignUp = () => {
                 />
               ))}
             </Stack>
+            </>
           ) : forgotPassword ? (
             <Stack direction="column" spacing={3}>
               <TextField

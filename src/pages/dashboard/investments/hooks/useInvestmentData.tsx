@@ -82,7 +82,11 @@ interface ApiError {
   message?: string;
 }
 
-export const useInvestmentData = (userId: string | null, paymentProof: File | null) => {
+export const useInvestmentData = (
+  userId: string | null,
+  paymentProof: File | null,
+  selectedPaymentAccountId: string
+) => {
   const [state, dispatch] = useReducer(investmentReducer, getInitialState());
   const [modalState, setModalState] = useState<{
     open: boolean;
@@ -104,7 +108,7 @@ export const useInvestmentData = (userId: string | null, paymentProof: File | nu
   } = useApiRequest<InvestmentState['industries']>();
   const { callApi: submitInvestment } = useApiRequest<SubscribeResponse>();
 
-  // Supported fiat currencies (NGN removed)
+  // Supported fiat currencies
   const supportedFiatCurrencies = ['USD', 'EUR', 'GBP', 'CAD'];
 
   // Fetch all industries on mount
@@ -234,6 +238,9 @@ export const useInvestmentData = (userId: string | null, paymentProof: File | nu
     }
     if (state.investmentType === 'crypto') {
       formData.append('cryptoCurrency', state.cryptoType.toLowerCase());
+    }
+    if (selectedPaymentAccountId) {
+      formData.append('paymentAccountId', selectedPaymentAccountId);
     }
     // Validate and prepare proof file
     const mimeTypeMap: Record<string, string> = {

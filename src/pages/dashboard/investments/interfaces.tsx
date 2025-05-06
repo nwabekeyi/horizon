@@ -64,3 +64,25 @@ export interface SubscribeResponse {
   company?: Company;
   user?: User;
 }
+
+
+// src/types/paymentAccount.ts
+export interface UserId {
+  _id: string;
+  email: string;
+}
+
+export interface PaymentAccount {
+  _id: string;
+  userId: UserId;
+  currency: 'usd' | 'usdt';
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  bankSwiftCode?: string;
+  walletAddress?: string;
+  network?: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}

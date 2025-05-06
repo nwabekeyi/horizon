@@ -6,6 +6,7 @@ import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import { blue } from '@mui/material/colors';
 
 interface Step {
   label: string; // Tab label (e.g., "ID Card")
@@ -67,7 +68,10 @@ export const MultiStepFlow: React.FC<MultiStepFlowProps> = ({ steps, onSubmit, i
               {step.content}
               <Stack direction="row" spacing={2}>
                 {!isFirstStep && (
-                  <Button variant="outlined" onClick={handleBack}>
+                  <Button sx={{
+                    color:blue[500],
+                    border: `1px solid ${blue[500]}`
+                  }} variant="outlined" onClick={handleBack}>
                     Back
                   </Button>
                 )}

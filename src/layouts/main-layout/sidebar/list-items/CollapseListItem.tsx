@@ -9,7 +9,11 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import IconifyIcon from 'components/base/IconifyIcon';
 
-const CollapseListItem = ({ subheader, active, items, icon }: MenuItem) => {
+interface CollapseListItemProps extends MenuItem {
+  handleDrawerClose?: () => void;
+}
+
+const CollapseListItem = ({ subheader, active, items, icon, handleDrawerClose }: CollapseListItemProps) => {
   const [open, setOpen] = useState(false);
 
   const handleClick = () => {
@@ -49,25 +53,24 @@ const CollapseListItem = ({ subheader, active, items, icon }: MenuItem) => {
 
       <Collapse in={open} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          {items?.map((route) => {
-            return (
-              <ListItemButton
-                key={route.pathName}
-                component={Link}
-                href={route.path}
-                sx={{ ml: 2.25, bgcolor: route.active ? 'info.main' : null }}
-              >
-                <ListItemText
-                  primary={route.pathName}
-                  sx={{
-                    '& .MuiListItemText-primary': {
-                      color: 'text.disabled',
-                    },
-                  }}
-                />
-              </ListItemButton>
-            );
-          })}
+          {items?.map((route) => (
+            <ListItemButton
+              key={route.pathName}
+              component={Link}
+              href={route.path}
+              sx={{ ml: 2.25, bgcolor: route.active ? 'info.main' : null }}
+              onClick={handleDrawerClose}
+            >
+              <ListItemText
+                primary={route.pathName}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: 'text.disabled',
+                  },
+                }}
+              />
+            </ListItemButton>
+          ))}
         </List>
       </Collapse>
     </Box>

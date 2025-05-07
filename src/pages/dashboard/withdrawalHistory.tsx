@@ -229,7 +229,7 @@ const WithdrawalHistory = ({ user }: TransactionHistoryProps) => {
   const inputMarginBottom = 2;
 
   return (
-    <Box p={3}>
+    <Box>
       <Typography variant="h4" mb={3}>
         Withdrawal History
       </Typography>

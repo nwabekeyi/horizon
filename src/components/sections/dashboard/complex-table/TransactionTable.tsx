@@ -13,7 +13,8 @@ import dayjs from 'dayjs';
 import { DisplayTransaction } from 'utils/interfaces';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
-import IconifyIcon from 'components/base/IconifyIcon'; // Make sure this component supports icon name + sx props
+import IconifyIcon from 'components/base/IconifyIcon';
+import { useTheme } from '@mui/material/styles';
 
 interface ActionItem {
   icon?: string;
@@ -28,29 +29,29 @@ interface TransactionTableProps {
   actions?: ActionItem[] | ((transaction: DisplayTransaction) => ActionItem[]);
 }
 
-const getCurrencyIcon = (currency: string | undefined) => {
+const getCurrencyIcon = (currency: string | undefined, fontSize: string) => {
   switch (currency?.toLowerCase()) {
     case 'usd':
-      return <FaDollarSign style={{ fontSize: 15, color: '#85bb65' }} />;
+      return <FaDollarSign style={{ fontSize, color: '#85bb65' }} />;
     case 'cad':
-      return <FaDollarSign style={{ fontSize: 15, color: '#d80621' }} />;
+      return <FaDollarSign style={{ fontSize, color: '#d80621' }} />;
     case 'eur':
-      return <FaEuroSign style={{ fontSize: 15, color: '#003399' }} />;
+      return <FaEuroSign style={{ fontSize, color: '#003399' }} />;
     case 'gbp':
-      return <FaPoundSign style={{ fontSize: 15, color: '#00247d' }} />;
+      return <FaPoundSign style={{ fontSize, color: '#00247d' }} />;
     case 'btc':
-      return <FaBitcoin style={{ fontSize: 15, color: '#f7931a' }} />;
+      return <FaBitcoin style={{ fontSize, color: '#f7931a' }} />;
     case 'eth':
-      return <FaEthereum style={{ fontSize: 15, color: '#3c3c3d' }} />;
+      return <FaEthereum style={{ fontSize, color: '#3c3c3d' }} />;
     case 'usdt':
       return (
         <IconifyIcon
           icon="cryptocurrency:usdt"
-          sx={{ fontSize: 15, color: '#26a17b', verticalAlign: 'middle' }}
+          sx={{ fontSize, color: '#26a17b', verticalAlign: 'middle' }}
         />
       );
     default:
-      return <FaDollarSign style={{ fontSize: 15, color: '#999' }} />;
+      return <FaDollarSign style={{ fontSize, color: '#999' }} />;
   }
 };
 
@@ -61,6 +62,7 @@ const TransactionTable = ({
   actions,
 }: TransactionTableProps) => {
   const [page, setPage] = useState<number>(0);
+  const theme = useTheme();
 
   const filteredTransactions = useMemo(() => {
     if (!searchText) return transactions;
@@ -79,18 +81,43 @@ const TransactionTable = ({
       headerName: 'Amount',
       flex: 1,
       renderCell: (params: GridCellParams) => (
-        <>
-          {getCurrencyIcon(params.row.currency)} {params.value}
-        </>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {getCurrencyIcon(
+            params.row.currency,
+            theme.typography.body2.fontSize as string // Responsive, ~0.875rem
+          )}
+          <Box
+            component="span"
+            sx={{
+              fontSize: {
+                xs: '0.75rem', // Smaller on mobile
+                sm: '0.875rem', // Matches body2
+                md: '1rem', // Slightly larger on desktop
+              },
+            }}
+          >
+            {params.value}
+          </Box>
+        </Box>
       ),
+      headerClassName: 'responsive-header',
+      cellClassName: 'responsive-cell',
     },
-    { field: 'companyName', headerName: 'Company', flex: 1 },
+    {
+      field: 'companyName',
+      headerName: 'Company',
+      flex: 1,
+      headerClassName: 'responsive-header',
+      cellClassName: 'responsive-cell',
+    },
     {
       field: 'createdAt',
       headerName: 'Date',
       flex: 1,
       renderCell: (params: GridCellParams) =>
         dayjs(params.value).format('MMM DD, YYYY'),
+      headerClassName: 'responsive-header',
+      cellClassName: 'responsive-cell',
     },
     {
       field: 'status',
@@ -99,18 +126,18 @@ const TransactionTable = ({
       renderCell: (params: GridCellParams) => {
         const status = params.value as string;
         const statusStyles: { [key: string]: { backgroundColor: string; color: string } } = {
-          pending: { backgroundColor: '#fff9c4', color: '#856404' }, // Yellow
-          processing: { backgroundColor: '#c8e6c9', color: '#2e7d32' }, // Light green
-          approved: { backgroundColor: '#388e3c', color: '#ffffff' }, // Dark green
-          canceled: { backgroundColor: '#ffcdd2', color: '#c62828' }, // Light red
-          failed: { backgroundColor: '#d32f2f', color: '#ffffff' }, // Dark red
-          successful: { backgroundColor: '#388e3c', color: '#ffffff' }, // Dark green
+          pending: { backgroundColor: '#fff9c4', color: '#856404' },
+          processing: { backgroundColor: '#c8e6c9', color: '#2e7d32' },
+          approved: { backgroundColor: '#388e3c', color: '#ffffff' },
+          canceled: { backgroundColor: '#ffcdd2', color: '#c62828' },
+          failed: { backgroundColor: '#d32f2f', color: '#ffffff' },
+          successful: { backgroundColor: '#388e3c', color: '#ffffff' },
         };
 
         const style = statusStyles[status] || {
           backgroundColor: '#e0e0e0',
           color: '#000000',
-        }; // Default gray
+        };
 
         return (
           <Box
@@ -122,12 +149,19 @@ const TransactionTable = ({
               color: style.color,
               fontWeight: 'medium',
               textTransform: 'capitalize',
+              fontSize: {
+                xs: '0.5rem',
+                sm: '0.7rem',
+                md: '0.8rem',
+              },
             }}
           >
             {status}
           </Box>
         );
       },
+      headerClassName: 'responsive-header',
+      cellClassName: 'responsive-cell',
     },
   ];
 
@@ -151,20 +185,32 @@ const TransactionTable = ({
                   {action.icon ? (
                     <IconifyIcon
                       icon={action.icon}
-                      sx={{ cursor: 'pointer', fontSize: 24 }}
+                      sx={{
+                        cursor: 'pointer',
+                        fontSize: {
+                          xs: '1rem', // 16px on mobile
+                          sm: '1.25rem', // 20px on tablet
+                          md: '1.5rem', // 24px on desktop
+                        },
+                      }}
                       onClick={() => action.onClick(row._id)}
                     />
                   ) : (
-                    <span
-                      style={{
+                    <Box
+                      component="span"
+                      sx={{
                         cursor: 'pointer',
-                        fontSize: 14,
                         fontWeight: 500,
+                        fontSize: {
+                          xs: '0.75rem',
+                          sm: '0.875rem',
+                          md: '1rem',
+                        },
                       }}
                       onClick={() => action.onClick(row._id)}
                     >
                       {action.label}
-                    </span>
+                    </Box>
                   )}
                 </span>
               </Tooltip>
@@ -172,12 +218,13 @@ const TransactionTable = ({
           </Stack>
         );
       },
+      headerClassName: 'responsive-header',
+      cellClassName: 'responsive-cell',
     });
   }
 
   return (
     <DataGrid
-      sx={{ px: 2 }}
       autoHeight
       pageSize={itemsPerPage}
       rowsPerPageOptions={[itemsPerPage]}
@@ -188,6 +235,25 @@ const TransactionTable = ({
       page={page}
       components={{
         Footer: DataGridFooter,
+      }}
+      sx={{
+        // Responsive font sizes for headers
+        '& .css-1epsd68-MuiDataGrid-columnHeaderTitle ': {
+          fontSize: {
+            xs: '0.65rem', // 12px on mobile
+            sm: '0.75rem', // 14px on tablet
+            md: '1rem', // 16px on desktop
+          },
+          fontWeight: 'bold',
+        },
+        // Responsive font sizes for cells
+        '& .responsive-cell': {
+          fontSize: {
+            xs: '0.6rem', // 12px on mobile
+            sm: '0.75rem', // 14px on tablet
+            md: '1rem', // 16px on desktop
+          },
+        },
       }}
     />
   );

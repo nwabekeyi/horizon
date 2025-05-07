@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom'; // <- Here
+import { useLocation } from 'react-router-dom';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
@@ -10,9 +10,13 @@ import Image from 'components/base/Image';
 import SidebarCard from './SidebarCard';
 import sitemap from 'routes/sitemap';
 
-const DrawerItems = () => {
-  const location = useLocation(); // <- Get location object
-  const pathname = location.pathname; // <- Current path
+interface DrawerItemsProps {
+  handleDrawerClose?: () => void;
+}
+
+const DrawerItems = ({ handleDrawerClose }: DrawerItemsProps) => {
+  const location = useLocation();
+  const pathname = location.pathname;
 
   return (
     <>
@@ -37,11 +41,21 @@ const DrawerItems = () => {
 
       <List component="nav" sx={{ mt: 2.5, mb: 10, p: 0, pl: 3 }}>
         {sitemap.map((route) => {
-          const isActive = pathname === route.path; // <- Dynamic active
+          const isActive = pathname === route.path;
           return route.items ? (
-            <CollapseListItem key={route.id} {...route} active={isActive} />
+            <CollapseListItem
+              key={route.id}
+              {...route}
+              active={isActive}
+              handleDrawerClose={handleDrawerClose}
+            />
           ) : (
-            <ListItem key={route.id} {...route} active={isActive} />
+            <ListItem
+              key={route.id}
+              {...route}
+              active={isActive}
+              handleDrawerClose={handleDrawerClose}
+            />
           );
         })}
       </List>

@@ -215,7 +215,7 @@ const InvestmentHistory = () => {
   };
 
   return (
-    <Box p={3}>
+    <Box>
       <Typography variant="h4" mb={3}>
         Investment History
       </Typography>

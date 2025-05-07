@@ -35,21 +35,21 @@ interface Wallet {
 
 interface UserInfo {
   _id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  firstName?: string; // Made optional for safety
+  lastName?: string; // Made optional for safety
+  email?: string; // Made optional for safety
   role: string;
   kyc: { status: string };
   transactions: Transaction[];
   twoFA: { enabled: boolean };
   isBanned: boolean;
   wallets: Wallet[];
-  dateJoined: string;
+  dateJoined?: string; // Made optional for safety
   createdAt: string;
   updatedAt: string;
   __v: number;
-  status: string;
-  profilePicture: string;
+  status?: string; // Made optional for safety
+  profilePicture?: string; // Made optional for safety
 }
 
 interface UpdateProfilePictureResponse {
@@ -160,6 +160,15 @@ export const ViewProfileModal = ({ open, handleClose }: ModalProps) => {
     );
   }
 
+  // Format dateJoined
+  const formattedDateJoined = user.dateJoined
+    ? new Date(user.dateJoined).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : 'User has not updated status';
+
   return (
     <CustomModal open={open} onCancel={handleClose} title="Your Profile" noConfirm>
       <Box sx={{ p: 2 }}>
@@ -167,7 +176,7 @@ export const ViewProfileModal = ({ open, handleClose }: ModalProps) => {
           <Box position="relative">
             <Avatar
               src={user.profilePicture || undefined}
-              alt={`${user.firstName} ${user.lastName}`}
+              alt={`${user.firstName || 'User'} ${user.lastName || ''}`}
               sx={{ width: 100, height: 100 }}
             />
             <IconButton
@@ -186,24 +195,19 @@ export const ViewProfileModal = ({ open, handleClose }: ModalProps) => {
 
           <Stack direction="column" spacing={1} sx={{ width: '100%' }}>
             <Typography variant="body1">
-              <strong>First Name:</strong> {user.firstName}
+              <strong>First Name:</strong> {user.firstName || 'User has not updated status'}
             </Typography>
             <Typography variant="body1">
-              <strong>Last Name:</strong> {user.lastName}
+              <strong>Last Name:</strong> {user.lastName || 'User has not updated status'}
             </Typography>
             <Typography variant="body1">
-              <strong>Email:</strong> {user.email}
+              <strong>Email:</strong> {user.email || 'User has not updated status'}
             </Typography>
             <Typography variant="body1">
-              <strong>Status:</strong> {user.status}
+              <strong>Status:</strong> {user.status || 'User has not updated status'}
             </Typography>
             <Typography variant="body1">
-              <strong>Date Joined:</strong>{' '}
-              {new Date(user.dateJoined).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              <strong>Date Joined:</strong> {formattedDateJoined}
             </Typography>
           </Stack>
         </Stack>

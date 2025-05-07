@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent, useRef } from 'react';
+import { useState, ChangeEvent, FormEvent, KeyboardEvent, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -10,9 +10,9 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import IconifyIcon from 'components/base/IconifyIcon';
 import paths from 'routes/paths';
-import { useApiRequest } from '../../hooks/useApi'; // Adjust path
-import Progress from '../../components/loading/Progress'; // Adjust path
-import CustomModal from '../../components/base/modal'; // Adjust path
+import { useApiRequest } from '../../hooks/useApi';
+import Progress from '../../components/loading/Progress';
+import CustomModal from '../../components/base/modal';
 import { ENDPOINTS } from 'utils/endpoints';
 import Footer from 'layouts/main-layout/footer';
 
@@ -34,13 +34,11 @@ interface InputField {
   showToggle?: boolean;
 }
 
-// Type for the initial registration PIN API call (only firstName and email)
 interface RegistrationPinRequestBody {
   firstName: string;
   email: string;
 }
 
-// Type for the full sign-up API call (including PIN)
 interface SignUpRequestBody {
   firstName: string;
   lastName: string;
@@ -50,12 +48,25 @@ interface SignUpRequestBody {
   role: 'user' | 'admin';
 }
 
-// Type for the forgot password API call (only email)
 interface ForgotPasswordRequestBody {
   email: string;
 }
 
 interface SignUpResponse {
+  success: boolean;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    dateJoined: string;
+  };
+  message: string;
+}
+
+interface BasicApiResponse {
+  success: boolean;
   message: string;
 }
 
@@ -70,17 +81,17 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationFilled, setRegistrationFilled] = useState(false);
-  const [forgotPassword, setForgotPassword] = useState(false); // New state
+  const [forgotPassword, setForgotPassword] = useState(false);
   const [pin, setPin] = useState<string[]>(['', '', '', '']);
   const [formError, setFormError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalContext, setModalContext] = useState<'signup' | 'forgotPassword' | null>(null);
 
   const { error: apiError, loading, callApi } = useApiRequest<
-    SignUpResponse,
+    SignUpResponse | BasicApiResponse,
     SignUpRequestBody | RegistrationPinRequestBody | ForgotPasswordRequestBody
   >();
 
-  // Refs for PIN input fields
   const pinRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -134,18 +145,21 @@ const SignUp = () => {
   ];
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setUser({ ...user, [name]: value });
     setFormError(null);
   };
 
-  const handlePinChange = async (e: ChangeEvent<HTMLInputElement>, index: number) => {
+  const handlePinInputChange = async (e: ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value;
-    if (/^\d$/.test(value)) {
+
+    if (/^\d$/.test(value) || value === '') {
       const newPin = [...pin];
       newPin[index] = value;
       setPin(newPin);
+      setFormError(null);
 
-      if (index < 3) {
+      if (value && index < 3) {
         pinRefs[index + 1].current?.focus();
       }
 
@@ -161,25 +175,38 @@ const SignUp = () => {
         };
 
         try {
-          await callApi({
+          const response = await callApi({
             url: ENDPOINTS.USERS,
             method: 'POST',
             body,
           });
-          setModalOpen(true);
-        } catch (err) {
-          console.error('API Error:', err);
+          if ('success' in response && response.success) {
+            setModalContext('signup');
+            setModalOpen(true);
+          } else {
+            setFormError(response.message || 'Failed to complete registration.');
+          }
+        } catch (error: unknown) {
+          console.error('API Error:', error);
+          setFormError(
+            error instanceof Error ? error.message : 'An error occurred during registration.'
+          );
         }
       }
+    }
+  };
+
+  const handlePinKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Backspace' && pin[index] === '' && index > 0) {
+      pinRefs[index - 1].current?.focus();
     }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (registrationFilled) {
-      // PIN submission handled in handlePinChange
+      // PIN submission handled in handlePinInputChange
     } else if (forgotPassword) {
-      // Forgot Password submission
       const body: ForgotPasswordRequestBody = {
         email: user.email,
       };
@@ -190,9 +217,10 @@ const SignUp = () => {
           method: 'POST',
           body,
         });
-        setModalOpen(true); // Show success modal (adjust message as needed)
-      } catch (err) {
-        console.error('API Error:', err);
+        setModalContext('forgotPassword');
+        setModalOpen(true);
+      } catch (error: unknown) {
+        console.error('API Error:', error);
       }
     } else {
       if (user.password !== user.confirmPassword) {
@@ -213,20 +241,24 @@ const SignUp = () => {
           body,
         });
         setRegistrationFilled(true);
-      } catch (err) {
-        console.error('API Error:', err);
+      } catch (error: unknown) {
+        console.error('API Error:', error);
       }
     }
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
-    if (forgotPassword) setForgotPassword(false); // Reset to sign-up form after forgot password success
+    setModalContext(null);
+    if (forgotPassword) setForgotPassword(false);
   };
 
-  // Show  loader while API call is pending
   if (loading) {
-    return <Box sx={{width: '100%', display:'flex', justifyContent:'center', alignItems: 'center'}}><Progress /></Box>;
+    return (
+      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Progress />
+      </Box>
+    );
   }
 
   return (
@@ -257,46 +289,49 @@ const SignUp = () => {
       </Box>
 
       <Box width={1}>
-        <Typography variant="h3">{forgotPassword ? 'Forgot Password' : registrationFilled ? 'You are almost there' : 'Sign Up'}</Typography>
+        <Typography variant="h3">
+          {forgotPassword ? 'Forgot Password' : registrationFilled ? 'You are almost there' : 'Sign Up'}
+        </Typography>
         <Typography mt={1.5} variant="body2" color="text.disabled">
-          {
-          forgotPassword ? 'Enter your email to reset your password.' 
-          : registrationFilled ? 'Complete the registration and get access to your account'
-          : 'Join us and start your journey today!'}
+          {forgotPassword
+            ? 'Enter your email to reset your password.'
+            : registrationFilled
+            ? 'Complete the registration and get access to your account'
+            : 'Join us and start your journey today!'}
         </Typography>
 
         <Divider sx={{ my: 3 }}>{!registrationFilled ? 'or' : ''}</Divider>
 
         <Box component="form" onSubmit={handleSubmit}>
           {registrationFilled ? (
-
             <>
-            <Typography variant="body2" color="text.secondary" mb={2} textAlign="center">
-              Please check your email inbox or spam folder for the PIN we sent you.
-            </Typography>
+              <Typography variant="body2" color="text.secondary" mb={2} sx={{fontWeight:'bold'}}>
+                Please check your email inbox or spam folder for the PIN we sent you.
+              </Typography>
 
-                 <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
-              {pin.map((digit, index) => (
-                <TextField
-                  key={index}
-                  value={digit}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinChange(e, index)}
-                  inputProps={{ maxLength: 1, style: { textAlign: 'center', fontSize: '24px' } }}
-                  variant="filled"
-                  inputRef={pinRefs[index]}
-                  sx={{
-                    width: 50,
-                    height: 60,
-                    mb: 5,
-                    '& .MuiFilledInput-root': {
-                      border: '1px solid grey',
-                      bgcolor: 'grey.100',
-                    },
-                  }}
-                  required
-                />
-              ))}
-            </Stack>
+              <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
+                {pin.map((digit, index) => (
+                  <TextField
+                    key={index}
+                    value={digit}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinInputChange(e, index)}
+                    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handlePinKeyDown(e, index)}
+                    inputProps={{ maxLength: 1, style: { textAlign: 'center', fontSize: '24px' } }}
+                    variant="filled"
+                    inputRef={pinRefs[index]}
+                    sx={{
+                      width: 50,
+                      height: 60,
+                      mb: 5,
+                      '& .MuiFilledInput-root': {
+                        border: '1px solid grey',
+                        bgcolor: 'grey.100',
+                      },
+                    }}
+                    required
+                  />
+                ))}
+              </Stack>
             </>
           ) : forgotPassword ? (
             <Stack direction="column" spacing={3}>
@@ -432,19 +467,18 @@ const SignUp = () => {
           </Typography>
         )}
 
-        {/* Success Modal */}
         <CustomModal
           open={modalOpen}
-          title={forgotPassword ? 'Password Reset Requested' : 'Registration Successful'}
+          title={modalContext === 'forgotPassword' ? 'Password Reset Requested' : 'Registration has been completed'}
           onCancel={handleModalClose}
           noConfirm={true}
         >
           <Typography variant="body1">
-            {forgotPassword
+            {modalContext === 'forgotPassword'
               ? 'A password reset link has been sent to your email. Please check your inbox.'
               : 'Your account has been created successfully! Would you like to log in now?'}
           </Typography>
-          {!forgotPassword && (
+          {modalContext === 'signup' && (
             <Button
               component={Link}
               href={paths.signin}
@@ -458,7 +492,7 @@ const SignUp = () => {
         </CustomModal>
       </Box>
 
-<Footer />
+      <Footer />
     </Stack>
   );
 };

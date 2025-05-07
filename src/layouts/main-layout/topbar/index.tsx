@@ -1,6 +1,6 @@
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
-import Badge from '@mui/material/Badge';
+// import Badge from '@mui/material/Badge';
 import Toolbar from '@mui/material/Toolbar';
 import TextField from '@mui/material/TextField';
 import ButtonBase from '@mui/material/ButtonBase';
@@ -10,7 +10,7 @@ import IconifyIcon from 'components/base/IconifyIcon';
 import HorizonLogo from 'assets/images/logo-main.png';
 import Image from 'components/base/Image';
 import ProfileMenu from './ProfileMenu';
-import LanguageSelect from './LanguageSelect';
+// import LanguageSelect from './LanguageSelect';
 
 interface TopbarProps {
   isClosing: boolean;
@@ -76,12 +76,12 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
       </Stack>
 
       <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
-        <LanguageSelect />
+        {/* <LanguageSelect />
         <IconButton size="large">
           <Badge color="error" variant="dot">
             <IconifyIcon icon="ic:baseline-notifications-none" />
           </Badge>
-        </IconButton>
+        </IconButton> */}
         <ProfileMenu />
       </Stack>
     </Stack>

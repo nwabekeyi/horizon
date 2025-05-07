@@ -62,19 +62,19 @@ const Dashboard = (): JSX.Element => {
           <Revenue user={user} />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <PiChart user={user}/>
+          <PiChart user={user} />
         </Grid>
         <Grid item xs={12} lg={8} xl={6}>
           <TrendingCryptos />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <InvestmentHistory user={user}/>
+          <InvestmentHistory user={user} />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
           <Calendar />
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
-          <Referral />
+          <Referral/>
         </Grid>
         <Grid item xs={12} md={6} lg={4} xl={3}>
           <PendingTransactions user={user} />

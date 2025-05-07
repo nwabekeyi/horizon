@@ -1,5 +1,4 @@
-// src/pages/dashboard/investments/index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -17,31 +16,32 @@ import { useInvestmentSteps } from './hooks/useInvestmentSteps';
 import CustomModal from 'components/base/modal';
 import { useUserDetails } from 'hooks/useUserdetails';
 import InvestmentHistory from './investmentHistory';
+import { useApiRequest } from '../../../hooks/useApi';
+import { ENDPOINTS } from '../../../utils/endpoints';
+import { User, PaymentAccount } from './interfaces';
 
-// Mock wire transfer details
-const wireTransferDetails: {
-  [key: string]: { account: string; bank: string; routing?: string; iban?: string };
-} = {
-  NGN: { account: '0123-4567-8901', bank: 'Zenith Bank', routing: '221000021' },
-  USD: { account: '1234-5678-9012', bank: 'Bank of America', routing: '021000021' },
-  EUR: { account: '9876-5432-1098', bank: 'Deutsche Bank', iban: 'DE89370400440532013000' },
-  GBP: { account: '5678-9012-3456', bank: 'Barclays', iban: 'GB29NWBK60161331926819' },
-  CAD: { account: '3456-7890-1234', bank: 'RBC', routing: '003000021' },
-};
+// Types
+interface InvestmentProps {}
 
-// Mock crypto addresses
-const cryptoAddresses: { BTC: string; ETH: string; USDT: string } = {
-  BTC: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-  ETH: '0x32Be343B94f860124dC4fEe278FDCBD38C102D88',
-  USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-};
-
-const Investment = () => {
-  const user = useUserDetails();
-  const userId = user && user._id;
-  console.log(userId)
-  const [isInvestmentFlowOpen, setIsInvestmentFlowOpen] = useState(false);
+const Investment: React.FC<InvestmentProps> = () => {
+  const user = useUserDetails() as User | null;
+  const userId = user?._id;
+  const [isInvestmentFlowOpen, setIsInvestmentFlowOpen] = useState<boolean>(false);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [selectedPaymentAccountId, setSelectedPaymentAccountId] = useState<string>('');
+
+  // Fetch payment accounts
+  const { data: paymentAccounts, loading: paymentAccountsLoading, error: paymentAccountsError, callApi } =
+    useApiRequest<PaymentAccount[]>();
+
+  useEffect(() => {
+    if (isInvestmentFlowOpen && userId) {
+      callApi({
+        url: ENDPOINTS.PAYMENT_ACCOUNTS,
+        method: 'GET',
+      });
+    }
+  }, [isInvestmentFlowOpen, userId, callApi]);
 
   const {
     state,
@@ -59,7 +59,7 @@ const Investment = () => {
     handleInvest,
     modalState,
     handleCloseModal,
-  } = useInvestmentData(userId, paymentProof);
+  } = useInvestmentData(userId ?? null, paymentProof, selectedPaymentAccountId);
 
   const paymentProofDropzone = useCompressedDropzone({
     onFileAccepted: (file: File) => {
@@ -86,13 +86,17 @@ const Investment = () => {
   };
 
   const handleStartInvestmentFlow = () => {
+    if (!userId) {
+      alert('Please log in to start an investment.');
+      return;
+    }
     setIsInvestmentFlowOpen(true);
   };
 
   const handleCloseInvestmentFlow = () => {
     setIsInvestmentFlowOpen(false);
     setPaymentProof(null);
-    // Do not reset state to preserve localStorage data
+    setSelectedPaymentAccountId('');
   };
 
   const handleSubmitInvestmentFlow = async () => {
@@ -100,6 +104,7 @@ const Investment = () => {
       userId,
       ...state,
       paymentProof: paymentProof?.name || 'Not uploaded',
+      selectedPaymentAccountId,
     });
     await handleInvest();
     handleCloseInvestmentFlow();
@@ -117,12 +122,13 @@ const Investment = () => {
     setFiatCurrency,
     setCryptoType,
     handleCompanyChange,
-    cryptoAddresses,
-    wireTransferDetails,
+    paymentAccounts: paymentAccounts || [],
+    selectedPaymentAccountId,
+    setSelectedPaymentAccountId,
   });
 
-  if (industriesLoading || companiesLoading) {
-    return <CircularProgress />;
+  if (industriesLoading || companiesLoading || paymentAccountsLoading) {
+    return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 4 }} />;
   }
 
   if (industriesError) {
@@ -131,6 +137,10 @@ const Investment = () => {
 
   if (companiesError) {
     return <Alert severity="error">{companiesError.message}</Alert>;
+  }
+
+  if (paymentAccountsError) {
+    return <Alert severity="error">{paymentAccountsError.message}</Alert>;
   }
 
   return (

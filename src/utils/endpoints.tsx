@@ -28,5 +28,5 @@ export const ENDPOINTS = {
   MAKE_WITHDRAWAL: `${withdrawalsUrl}/make`,
   PAYMENT_ACCOUNTS: `${API_BASE_URL}/paymentAccounts`,
   PAYMENT_DETAILS: paymentDetails,
-  CONFIRM_PASSWORD: `${API_BASE_URL}/auth/confirm-password`, // Added
+  CONFIRM_PASSWORD: `${API_BASE_URL}/auth/confirm-password`,
 };

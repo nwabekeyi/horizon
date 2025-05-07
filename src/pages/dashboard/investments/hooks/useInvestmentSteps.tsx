@@ -16,7 +16,8 @@ import {
   ListItemButton,
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
-import { ChangeEvent, HTMLAttributes, useState } from 'react';
+import { ChangeEvent, HTMLAttributes, useState, useEffect } from 'react';
+import { PaymentAccount } from '../interfaces'; // Adjust to '../../../types/paymentAccount' if needed
 
 // Define Dropzone props
 interface DropzoneProps {
@@ -50,26 +51,15 @@ interface InvestmentState {
   cryptoType: 'BTC' | 'ETH' | 'USDT' | '';
 }
 
-// Define form field configs
-interface SelectFormField {
+interface FormField {
   id: keyof InvestmentState;
   label: string;
-  type: 'select';
+  type: 'select' | 'text';
   value: string;
-  options: { value: string; label: string }[];
-  onChange: (e: SelectChangeEvent<string>) => void;
+  options?: { value: string; label: string }[];
+  onChange: (e: SelectChangeEvent<string> | ChangeEvent<HTMLInputElement>) => void;
   disabled?: boolean;
 }
-
-interface TextFormField {
-  id: keyof InvestmentState;
-  label: string;
-  type: 'text';
-  value: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-}
-
-type FormField = SelectFormField | TextFormField;
 
 interface UseInvestmentStepsProps {
   state: InvestmentState;
@@ -83,10 +73,15 @@ interface UseInvestmentStepsProps {
   setFiatCurrency: (value: string) => void;
   setCryptoType: (value: 'BTC' | 'ETH' | 'USDT' | '') => void;
   handleCompanyChange: (e: SelectChangeEvent<string>) => void;
-  cryptoAddresses: { BTC: string; ETH: string; USDT: string };
-  wireTransferDetails: {
-    [key: string]: { account: string; bank: string; routing?: string; iban?: string };
-  };
+  paymentAccounts: PaymentAccount[];
+  selectedPaymentAccountId: string;
+  setSelectedPaymentAccountId: (value: string) => void;
+}
+
+interface Step {
+  label: string;
+  content: JSX.Element;
+  validate: () => boolean;
 }
 
 export const useInvestmentSteps = ({
@@ -96,27 +91,89 @@ export const useInvestmentSteps = ({
   paymentProofDropzone,
   setInvestmentType,
   setIndustry,
-  setSelectedCompany,
+  // setSelectedCompany,
   setAmount,
   setFiatCurrency,
   setCryptoType,
-  // handleCompanyChange, // Not used
-  cryptoAddresses,
-  wireTransferDetails,
-}: UseInvestmentStepsProps) => {
+  handleCompanyChange,
+  paymentAccounts,
+  selectedPaymentAccountId,
+  setSelectedPaymentAccountId,
+}: UseInvestmentStepsProps): Step[] => {
   const isImage = (file: File | null): boolean => {
     return !!file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
   };
 
-  // Track which company is expanded
+  // Explicitly type as string | null to fix previous TypeScript error
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
 
-  // Toggle collapse for a company
   const handleToggleCollapse = (companyId: string) => {
     setExpandedCompanyId(expandedCompanyId === companyId ? null : companyId);
   };
 
-  // Form fields for Step 2
+  const handlePaymentAccountChange = (e: SelectChangeEvent<string>) => {
+    setSelectedPaymentAccountId(e.target.value);
+  };
+
+  const selectedPaymentAccount = paymentAccounts.find(
+    (account) => account._id === selectedPaymentAccountId
+  );
+
+  // Determine available investment types and currencies from paymentAccounts
+  const hasFiat = paymentAccounts.some((account) => account.currency === 'usd');
+  const hasCrypto = paymentAccounts.some((account) => account.currency === 'usdt');
+  const availableFiatCurrencies = Array.from(
+    new Set(paymentAccounts.filter((account) => account.currency === 'usd').map(() => 'USD'))
+  );
+  const availableCryptoTypes = Array.from(
+    new Set(
+      paymentAccounts
+        .filter((account) => account.currency === 'usdt' && account.network)
+        .map((account) => {
+          switch (account.network?.toLowerCase()) {
+            case 'erc':
+              return 'USDT';
+            case 'eth':
+              return 'ETH';
+            case 'btc':
+              return 'BTC';
+            default:
+              return '';
+          }
+        })
+        .filter((type) => type !== '')
+    )
+  ) as ('BTC' | 'ETH' | 'USDT')[];
+
+  // Reset invalid selections when paymentAccounts changes
+  useEffect(() => {
+    if (state.investmentType === 'fiat' && !hasFiat) {
+      setInvestmentType('');
+      setFiatCurrency('');
+    } else if (state.investmentType === 'crypto' && !hasCrypto) {
+      setInvestmentType('');
+      setCryptoType('');
+    }
+    if (state.fiatCurrency && !availableFiatCurrencies.includes(state.fiatCurrency)) {
+      setFiatCurrency('');
+    }
+    if (state.cryptoType && !availableCryptoTypes.includes(state.cryptoType)) {
+      setCryptoType('');
+    }
+  }, [
+    paymentAccounts,
+    state.investmentType,
+    state.fiatCurrency,
+    state.cryptoType,
+    hasFiat,
+    hasCrypto,
+    availableFiatCurrencies,
+    availableCryptoTypes,
+    setInvestmentType,
+    setFiatCurrency,
+    setCryptoType,
+  ]);
+
   const formFields: FormField[] = [
     {
       id: 'investmentType',
@@ -124,10 +181,17 @@ export const useInvestmentSteps = ({
       type: 'select',
       value: state.investmentType,
       options: [
-        { value: 'fiat', label: 'Fiat' },
-        { value: 'crypto', label: 'Crypto' },
+        ...(hasFiat ? [{ value: 'fiat', label: 'Fiat' }] : []),
+        ...(hasCrypto ? [{ value: 'crypto', label: 'Crypto' }] : []),
       ],
-      onChange: (e) => setInvestmentType(e.target.value),
+      onChange: (e) => {
+        const value = (e as SelectChangeEvent<string>).target.value;
+        setInvestmentType(value);
+        // Reset currency when investment type changes
+        setFiatCurrency('');
+        setCryptoType('');
+      },
+      disabled: !hasFiat && !hasCrypto,
     },
     {
       id: state.investmentType === 'crypto' ? 'cryptoType' : 'fiatCurrency',
@@ -136,29 +200,26 @@ export const useInvestmentSteps = ({
       value: state.investmentType === 'crypto' ? state.cryptoType : state.fiatCurrency,
       options:
         state.investmentType === 'crypto'
-          ? [
-              { value: 'BTC', label: 'Bitcoin (BTC)' },
-              { value: 'ETH', label: 'Ethereum (ETH)' },
-              { value: 'USDT', label: 'Tether (USDT)' },
-            ]
-          : [
-              { value: 'NGN', label: 'Nigerian Naira (NGN)' },
-              { value: 'USD', label: 'US Dollar (USD)' },
-              { value: 'EUR', label: 'Euro (EUR)' },
-              { value: 'GBP', label: 'British Pound (GBP)' },
-              { value: 'CAD', label: 'Canadian Dollar (CAD)' },
-            ],
+          ? availableCryptoTypes.map((type) => ({
+              value: type,
+              label: type === 'BTC' ? 'Bitcoin (BTC)' : type === 'ETH' ? 'Ethereum (ETH)' : 'Tether (USDT)',
+            }))
+          : availableFiatCurrencies.map((currency) => ({
+              value: currency,
+              label: currency === 'USD' ? 'US Dollar (USD)' : currency,
+            })),
       onChange: (e) =>
         state.investmentType === 'crypto'
-          ? setCryptoType(e.target.value as 'BTC' | 'ETH' | 'USDT' | '')
-          : setFiatCurrency(e.target.value),
+          ? setCryptoType((e as SelectChangeEvent<string>).target.value as 'BTC' | 'ETH' | 'USDT' | '')
+          : setFiatCurrency((e as SelectChangeEvent<string>).target.value),
+      disabled: state.investmentType === 'crypto' ? !availableCryptoTypes.length : !availableFiatCurrencies.length,
     },
     {
       id: 'amount',
       label: 'Investment Amount',
       type: 'text',
       value: state.amount,
-      onChange: (e) => setAmount(e.target.value),
+      onChange: (e) => setAmount((e as ChangeEvent<HTMLInputElement>).target.value),
     },
   ];
 
@@ -167,9 +228,6 @@ export const useInvestmentSteps = ({
       label: 'Select Industry & Company',
       content: (
         <Box>
-          <Typography variant="h6" gutterBottom>
-            Select Industry and Company
-          </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <FormControl fullWidth disabled={!allIndustries}>
@@ -193,9 +251,20 @@ export const useInvestmentSteps = ({
             </Grid>
             {state.industry && state.industries.length > 0 ? (
               <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Available Companies
-                </Typography>
+                <FormControl fullWidth sx={{ my: 3 }}>
+                  <InputLabel>Company</InputLabel>
+                  <Select
+                    value={state.selectedCompany}
+                    onChange={handleCompanyChange}
+                    label="Company"
+                  >
+                    {state.industries.map((company) => (
+                      <MenuItem key={company._id} value={company.name}>
+                        {company.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <List sx={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
                   {state.industries.map((company) => (
                     <Box key={company._id}>
@@ -214,7 +283,7 @@ export const useInvestmentSteps = ({
                         />
                       </ListItemButton>
                       <Collapse in={expandedCompanyId === company._id} timeout="auto" unmountOnExit>
-                        <Box sx={{ p: 2, bgcolor: '#f5f5f5' }}>
+                        <Box sx={{ p: 2, bgcolor: '#f5f5f5', display:"flex", flexDirection:"column", gap:2 }}>
                           {company.logoUrl && company.logoUrl !== 'string' ? (
                             <img
                               src={company.logoUrl}
@@ -240,14 +309,15 @@ export const useInvestmentSteps = ({
                           <Typography variant="body2">
                             <strong>Total Crypto Investment:</strong> ${company.totalCryptoInvestment}
                           </Typography>
-                          <Typography variant="body2">
-                            <strong>Created:</strong> {new Date(company.createdAt).toLocaleDateString()}
-                          </Typography>
                           <Button
                             variant="contained"
                             color="primary"
                             sx={{ mt: 2 }}
-                            onClick={() => setSelectedCompany(company.name, company._id)}
+                            onClick={() => {
+                              handleCompanyChange({
+                                target: { value: company.name },
+                              } as SelectChangeEvent<string>);
+                            }}
                           >
                             Invest
                           </Button>
@@ -298,12 +368,95 @@ export const useInvestmentSteps = ({
                     label={field.label}
                     type="number"
                     value={field.value}
-                    onChange={field.onChange}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => field.onChange(e)}
                     variant="outlined"
                   />
                 )}
               </Grid>
             ))}
+            {/* Payment Instructions */}
+            <Grid item xs={12} mt={3}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Payment Account</InputLabel>
+                <Select
+                  value={selectedPaymentAccountId}
+                  onChange={handlePaymentAccountChange}
+                  label="Payment Account"
+                >
+                  {paymentAccounts.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      No payment accounts available
+                    </MenuItem>
+                  ) : (
+                    paymentAccounts.map((account) => (
+                      <MenuItem key={account._id} value={account._id}>
+                        {account.currency.toUpperCase()} -{' '}
+                        {account.currency === 'usd'
+                          ? `${account.accountName} (${account.bankName})`
+                          : `${account.walletAddress?.substring(0, 8)}... (${account.network})`}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+              </FormControl>
+              {selectedPaymentAccount ? (
+                <List>
+                  {selectedPaymentAccount.currency === 'usd' ? (
+                    <>
+                      <ListItem>
+                        <ListItemText
+                          primary="Bank"
+                          secondary={selectedPaymentAccount.bankName || 'Not available'}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemText
+                          primary="Account Name"
+                          secondary={selectedPaymentAccount.accountName || 'Not available'}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemText
+                          primary="Account Number"
+                          secondary={selectedPaymentAccount.accountNumber || 'Not available'}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemText
+                          primary="Swift Code"
+                          secondary={selectedPaymentAccount.bankSwiftCode || 'Not available'}
+                        />
+                      </ListItem>
+                      <Typography variant="caption" color="textSecondary">
+                        Transfer {state.amount} {state.fiatCurrency} to this account.
+                      </Typography>
+                    </>
+                  ) : (
+                    <>
+                      <ListItem>
+                        <ListItemText
+                          primary="Wallet Address"
+                          secondary={selectedPaymentAccount.walletAddress || 'Not available'}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemText
+                          primary="Network"
+                          secondary={selectedPaymentAccount.network || 'Not available'}
+                        />
+                      </ListItem>
+                      <Typography variant="caption" color="textSecondary">
+                        Send {state.amount} {state.cryptoType} to this address.
+                      </Typography>
+                    </>
+                  )}
+                </List>
+              ) : (
+                <Typography color="textSecondary">
+                  Please select a payment account to view payment details.
+                </Typography>
+              )}
+            </Grid>
           </Grid>
         </Box>
       ),
@@ -311,70 +464,8 @@ export const useInvestmentSteps = ({
         !!state.investmentType &&
         (state.investmentType === 'crypto' ? !!state.cryptoType : !!state.fiatCurrency) &&
         !!state.amount &&
-        parseFloat(state.amount) > 0,
-    },
-    {
-      label: 'Payment Instructions',
-      content: (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Payment Instructions
-          </Typography>
-          {state.investmentType === 'crypto' && state.cryptoType ? (
-            <>
-              <Typography variant="body1">
-                Send {state.cryptoType} to the following address:
-              </Typography>
-              <Typography variant="body2" sx={{ wordBreak: 'break-all', mt: 1 }}>
-                {cryptoAddresses[state.cryptoType] || 'Address not available'}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Ensure you send the exact amount: {state.amount} {state.cryptoType}
-              </Typography>
-            </>
-          ) : state.investmentType === 'fiat' && state.fiatCurrency ? (
-            <List>
-              <ListItem>
-                <ListItemText
-                  primary="Account Number"
-                  secondary={wireTransferDetails[state.fiatCurrency]?.account || 'Not available'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Bank"
-                  secondary={wireTransferDetails[state.fiatCurrency]?.bank || 'Not available'}
-                />
-              </ListItem>
-              {['USD', 'CAD', 'NGN'].includes(state.fiatCurrency) && (
-                <ListItem>
-                  <ListItemText
-                    primary="Routing Number"
-                    secondary={wireTransferDetails[state.fiatCurrency]?.routing || 'Not available'}
-                  />
-                </ListItem>
-              )}
-              {['EUR', 'GBP'].includes(state.fiatCurrency) && (
-                <ListItem>
-                  <ListItemText
-                    primary="IBAN"
-                    secondary={wireTransferDetails[state.fiatCurrency]?.iban || 'Not available'}
-                  />
-                </ListItem>
-              )}
-              <Typography variant="caption" color="textSecondary">
-                Transfer {state.amount} {state.fiatCurrency} to this account.
-              </Typography>
-            </List>
-          ) : (
-            <Typography color="error">Please complete investment details in the previous step.</Typography>
-          )}
-        </Box>
-      ),
-      validate: () =>
-        state.investmentType === 'crypto'
-          ? !!state.cryptoType && !!cryptoAddresses[state.cryptoType]
-          : !!state.fiatCurrency && !!wireTransferDetails[state.fiatCurrency]?.account,
+        parseFloat(state.amount) > 0 &&
+        (paymentAccounts.length === 0 || !!selectedPaymentAccountId),
     },
     {
       label: 'Upload Proof',

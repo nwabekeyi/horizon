@@ -98,6 +98,7 @@ export interface UserInfo {
   twoFA: TwoFA;
   kyc?: KYC;
   investments?: Investment[];
+  referralLink: string
 }
 
 // Main User interface (could be null or contain the UserInfo)

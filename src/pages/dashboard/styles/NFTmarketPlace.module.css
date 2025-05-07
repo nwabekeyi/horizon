@@ -1,0 +1,21 @@
+.swiperContainer {
+  padding-bottom: 48px; /* Space for pagination dots */
+}
+
+.swiperButtonNext,
+.swiperButtonPrev {
+  color: #1976d2 !important; /* Material-UI primary.main (adjust to your theme) */
+}
+
+.swiperButtonNext:after,
+.swiperButtonPrev:after {
+  font-size: 24px !important; /* Size of navigation arrows */
+}
+
+.swiperPaginationBullet {
+  background-color: rgba(0, 0, 0, 0.54) !important; /* text.secondary */
+}
+
+.swiperPaginationBulletActive {
+  background-color: #1976d2 !important; /* primary.main */
+}

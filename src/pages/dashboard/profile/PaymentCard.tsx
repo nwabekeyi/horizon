@@ -10,16 +10,17 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Button,
 } from "@mui/material";
 import { FC, useReducer } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import CustomModal from "components/base/modal"; // Adjust path to your CustomModal component
-import { useApiRequest } from "hooks/useApi"; // Import the useApiRequest hook
-import { ENDPOINTS } from "utils/endpoints"; // Import the ENDPOINTS object
+import CustomModal from "components/base/modal"; // Adjust path
+import { useApiRequest } from "hooks/useApi"; // Adjust path
+import { ENDPOINTS } from "utils/endpoints"; // Adjust path
 import { useDispatch } from "react-redux";
-import { addPaymentDetail } from "store/slices/userSlice"; // Adjust path to your userSlice
+import { addPaymentDetail } from "store/slices/userSlice"; // Adjust path
 
-// component props interface
+// Component props interface
 interface PaymentDetailProps {
   paymentDetail: {
     _id: string;
@@ -32,15 +33,9 @@ interface PaymentDetailProps {
       address?: string;
       network?: "erc20" | "trc20" | "bep20" | "polygon" | "solana";
     };
-  };
-  userId: string; // Required for API payload
-}
-
-
-interface DeletePaymentDetailPayload {
+  } | null | undefined; // Allow null/undefined
   userId: string;
 }
-
 
 // Interfaces for API request and response
 interface PaymentDetailPayload {
@@ -56,6 +51,10 @@ interface PaymentDetailPayload {
   };
 }
 
+interface DeletePaymentDetailPayload {
+  userId: string;
+}
+
 interface PaymentDetailResponse {
   success: boolean;
   message: string;
@@ -69,8 +68,6 @@ interface DeletePaymentDetailResponse {
 }
 
 type CombinedPayload = PaymentDetailPayload | DeletePaymentDetailPayload;
-
-
 
 // State interface
 interface State {
@@ -159,7 +156,7 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-// styled components
+// Styled components
 const SymbolAvatar = styled(Avatar)(({ theme }) => ({
   width: 48,
   height: 48,
@@ -194,19 +191,46 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
     CombinedPayload
   >();
 
-  const currencySymbol = currencySymbols[paymentDetail.currency] || "?";
+  // Check if paymentDetail is empty or invalid
+  const isPaymentDetailEmpty =
+    !paymentDetail ||
+    !paymentDetail._id ||
+    !paymentDetail.type ||
+    !paymentDetail.currency;
 
-  // Open edit modal and pre-fill form
+  // Open edit modal for adding new payment details
+  const handleAddPaymentDetail = () => {
+    dispatch({ type: "RESET_EDIT_FORM" });
+    dispatch({ type: "SET_EDIT_MODAL_OPEN", payload: true });
+  };
+
+  // Open edit modal and pre-fill form for existing details
   const handleEditPaymentDetail = () => {
+    if (!paymentDetail) return;
     dispatch({ type: "SET_PAYMENT_TYPE", payload: paymentDetail.type });
     dispatch({ type: "SET_PAYMENT_CURRENCY", payload: paymentDetail.currency });
     if (paymentDetail.type === "fiat" && paymentDetail.accountDetails) {
-      dispatch({ type: "SET_BANK_NAME", payload: paymentDetail.accountDetails.bankName || "" });
-      dispatch({ type: "SET_ACCOUNT_NUMBER", payload: paymentDetail.accountDetails.accountNumber || "" });
-      dispatch({ type: "SET_ACCOUNT_NAME", payload: paymentDetail.accountDetails.accountName || "" });
+      dispatch({
+        type: "SET_BANK_NAME",
+        payload: paymentDetail.accountDetails.bankName || "",
+      });
+      dispatch({
+        type: "SET_ACCOUNT_NUMBER",
+        payload: paymentDetail.accountDetails.accountNumber || "",
+      });
+      dispatch({
+        type: "SET_ACCOUNT_NAME",
+        payload: paymentDetail.accountDetails.accountName || "",
+      });
     } else if (paymentDetail.type === "crypto" && paymentDetail.accountDetails) {
-      dispatch({ type: "SET_CRYPTO_ADDRESS", payload: paymentDetail.accountDetails.address || "" });
-      dispatch({ type: "SET_NETWORK", payload: paymentDetail.accountDetails.network || "" });
+      dispatch({
+        type: "SET_CRYPTO_ADDRESS",
+        payload: paymentDetail.accountDetails.address || "",
+      });
+      dispatch({
+        type: "SET_NETWORK",
+        payload: paymentDetail.accountDetails.network || "",
+      });
     }
     dispatch({ type: "SET_EDIT_MODAL_OPEN", payload: true });
   };
@@ -219,6 +243,7 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
 
   // Open delete confirmation modal
   const handleOpenDeleteModal = () => {
+    if (!paymentDetail) return;
     dispatch({ type: "SET_DELETING_PAYMENT_DETAIL_ID", payload: paymentDetail._id });
     dispatch({ type: "SET_DELETE_MODAL_OPEN", payload: true });
   };
@@ -236,23 +261,32 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
       return false;
     }
     if (!state.paymentType) {
-      dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please select a payment type" });
+      dispatch({
+        type: "SET_PAYMENT_ERROR",
+        payload: "Please select a payment type",
+      });
       return false;
     }
     if (state.paymentType === "fiat") {
       if (!state.bankName || !state.accountNumber || !state.accountName) {
-        dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please fill in all bank details" });
+        dispatch({
+          type: "SET_PAYMENT_ERROR",
+          payload: "Please fill in all bank details",
+        });
         return false;
       }
     } else if (state.paymentType === "crypto" && !state.cryptoAddress) {
-      dispatch({ type: "SET_PAYMENT_ERROR", payload: "Please provide a crypto address" });
+      dispatch({
+        type: "SET_PAYMENT_ERROR",
+        payload: "Please provide a crypto address",
+      });
       return false;
     }
     dispatch({ type: "SET_PAYMENT_ERROR", payload: "" });
     return true;
   };
 
-  // Edit payment detail API call
+  // Submit payment details (add or edit)
   const handleEditSubmit = async (): Promise<void> => {
     if (loading) return;
     if (!validatePaymentDetails()) return;
@@ -260,7 +294,14 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
     const payload: PaymentDetailPayload = {
       userId,
       type: state.paymentType,
-      currency: state.paymentCurrency as "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt",
+      currency: state.paymentCurrency as
+        | "usd"
+        | "cad"
+        | "eur"
+        | "gbp"
+        | "btc"
+        | "eth"
+        | "usdt",
       accountDetails:
         state.paymentType === "fiat"
           ? {
@@ -276,19 +317,27 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
     };
 
     try {
+      const url = isPaymentDetailEmpty
+        ? ENDPOINTS.PAYMENT_DETAILS // Add new payment detail
+        : `${ENDPOINTS.PAYMENT_DETAILS}/update/${paymentDetail!._id}`; // Update existing
+      const method = isPaymentDetailEmpty ? "POST" : "PUT";
+
       const response = await callApi({
-        url: `${ENDPOINTS.PAYMENT_DETAILS}/update/${paymentDetail._id}`,
-        method: "PUT",
+        url,
+        method,
         body: payload,
       });
       if (response.success && response.paymentDetail) {
         reduxDispatch(addPaymentDetail(response.paymentDetail));
         handleEditModalClose();
       } else {
-        dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to update payment details" });
+        dispatch({
+          type: "SET_PAYMENT_ERROR",
+          payload: response.message || "Failed to save payment details",
+        });
       }
     } catch (err: unknown) {
-      const errorMessage = apiError?.message || "Failed to update payment details";
+      const errorMessage = apiError?.message || "Failed to save payment details";
       dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
     }
   };
@@ -300,7 +349,7 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
       const response = await callApi({
         url: `${ENDPOINTS.PAYMENT_DETAILS}/delete/${state.deletingPaymentDetailId}`,
         method: "DELETE",
-        body:{userId}
+        body: { userId },
       });
       if (response.success) {
         reduxDispatch({
@@ -309,13 +358,197 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
         });
         handleCloseDeleteModal();
       } else {
-        dispatch({ type: "SET_PAYMENT_ERROR", payload: response.message || "Failed to delete payment detail" });
+        dispatch({
+          type: "SET_PAYMENT_ERROR",
+          payload: response.message || "Failed to delete payment detail",
+        });
       }
     } catch (err: unknown) {
       const errorMessage = apiError?.message || "Failed to delete payment detail";
       dispatch({ type: "SET_PAYMENT_ERROR", payload: errorMessage });
     }
   };
+
+  if (isPaymentDetailEmpty) {
+    return (
+      <Card sx={{ padding: 3, mb: 3, textAlign: "center" }}>
+        <Typography variant="h6" color="text.primary" gutterBottom>
+          No Payment Account Added
+        </Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          You have not yet added a payment account. Add one to start receiving
+          payments.
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleAddPaymentDetail}
+          sx={{ textTransform: "none" }}
+        >
+          Add Payment Account
+        </Button>
+
+        {/* Edit/Add Payment Details Modal */}
+        <CustomModal
+          open={state.isEditModalOpen}
+          title="Add Payment Details"
+          onCancel={handleEditModalClose}
+          onConfirm={handleEditSubmit}
+        >
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <FormControl fullWidth>
+              <InputLabel id="payment-type-label">Payment Type</InputLabel>
+              <Select
+                labelId="payment-type-label"
+                value={state.paymentType}
+                label="Payment Type"
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_PAYMENT_TYPE",
+                    payload: e.target.value as "fiat" | "crypto",
+                  })
+                }
+                aria-label="Select payment type"
+              >
+                <MenuItem value="fiat">Fiat</MenuItem>
+                <MenuItem value="crypto">Crypto</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel id="currency-label">Currency</InputLabel>
+              <Select
+                labelId="currency-label"
+                value={state.paymentCurrency}
+                label="Currency"
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_PAYMENT_CURRENCY",
+                    payload: e.target.value as
+                      | "usd"
+                      | "cad"
+                      | "eur"
+                      | "gbp"
+                      | "btc"
+                      | "eth"
+                      | "usdt"
+                      | "",
+                  })
+                }
+                aria-label="Select currency"
+              >
+                {state.paymentType === "fiat"
+                  ? ["usd", "cad", "eur", "gbp"].map((curr) => (
+                      <MenuItem key={curr} value={curr}>
+                        {curr.toUpperCase()}
+                      </MenuItem>
+                    ))
+                  : ["btc", "eth", "usdt"].map((curr) => (
+                      <MenuItem key={curr} value={curr}>
+                        {curr.toUpperCase()}
+                      </MenuItem>
+                    ))}
+              </Select>
+            </FormControl>
+            {state.paymentType === "fiat" ? (
+              <>
+                <TextField
+                  fullWidth
+                  label="Bank Name"
+                  value={state.bankName}
+                  onChange={(e) =>
+                    dispatch({ type: "SET_BANK_NAME", payload: e.target.value })
+                  }
+                  aria-label="Bank name"
+                />
+                <TextField
+                  fullWidth
+                  label="Account Number"
+                  value={state.accountNumber}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_ACCOUNT_NUMBER",
+                      payload: e.target.value,
+                    })
+                  }
+                  aria-label="Account number"
+                />
+                <TextField
+                  fullWidth
+                  label="Account Name"
+                  value={state.accountName}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_ACCOUNT_NAME",
+                      payload: e.target.value,
+                    })
+                  }
+                  aria-label="Account name"
+                />
+              </>
+            ) : (
+              <>
+                <TextField
+                  fullWidth
+                  label="Crypto Address"
+                  value={state.cryptoAddress}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_CRYPTO_ADDRESS",
+                      payload: e.target.value,
+                    })
+                  }
+                  aria-label="Crypto address"
+                />
+                <FormControl fullWidth>
+                  <InputLabel id="network-label">Network (Optional)</InputLabel>
+                  <Select
+                    labelId="network-label"
+                    value={state.network}
+                    label="Network (Optional)"
+                    onChange={(e) =>
+                      dispatch({
+                        type: "SET_NETWORK",
+                        payload: e.target.value as
+                          | "erc20"
+                          | "trc20"
+                          | "bep20"
+                          | "polygon"
+                          | "solana"
+                          | "",
+                      })
+                    }
+                    aria-label="Select network"
+                  >
+                    <MenuItem value="">None</MenuItem>
+                    {["erc20", "trc20", "bep20", "polygon", "solana"].map(
+                      (net) => (
+                        <MenuItem key={net} value={net}>
+                          {net.toUpperCase()}
+                        </MenuItem>
+                      )
+                    )}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+            {(state.paymentError || apiError) && (
+              <Typography variant="caption" color="error">
+                {state.paymentError || apiError?.message}
+              </Typography>
+            )}
+            {loading && (
+              <Typography variant="caption" color="text.secondary">
+                Submitting...
+              </Typography>
+            )}
+          </Box>
+        </CustomModal>
+      </Card>
+    );
+  }
+
+  // Existing payment detail rendering
+  const currencySymbol = currencySymbols[paymentDetail.currency] || "?";
 
   return (
     <>
@@ -327,7 +560,11 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
               <Typography variant="subtitle1" fontWeight={600} lineHeight={1.2}>
                 {paymentDetail.type.toUpperCase()} Payment
               </Typography>
-              <Typography variant="caption" color="text.disabled" fontWeight={500}>
+              <Typography
+                variant="caption"
+                color="text.disabled"
+                fontWeight={500}
+              >
                 {paymentDetail.currency.toUpperCase()}
               </Typography>
             </Box>
@@ -361,7 +598,11 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
           {paymentDetail.type === "fiat" ? (
             <>
               <InfoRow>
-                <Typography variant="body2" color="text.secondary" minWidth={120}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  minWidth={120}
+                >
                   Bank Name:
                 </Typography>
                 <Typography variant="body2" fontWeight={500}>
@@ -369,7 +610,11 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
                 </Typography>
               </InfoRow>
               <InfoRow>
-                <Typography variant="body2" color="text.secondary" minWidth={120}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  minWidth={120}
+                >
                   Account Name:
                 </Typography>
                 <Typography variant="body2" fontWeight={500}>
@@ -377,7 +622,11 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
                 </Typography>
               </InfoRow>
               <InfoRow>
-                <Typography variant="body2" color="text.secondary" minWidth={120}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  minWidth={120}
+                >
                   Account Number:
                 </Typography>
                 <Typography variant="body2" fontWeight={500}>
@@ -388,16 +637,25 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
           ) : (
             <>
               <InfoRow>
-                <Typography variant="body2" color="text.secondary" minWidth={120}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  minWidth={120}
+                >
                   Address:
                 </Typography>
                 <Typography variant="body2" fontWeight={500}>
+                  {paymentDetail.accountDetails.address || "N/A"}
                   {paymentDetail.accountDetails.address || "N/A"}
                 </Typography>
               </InfoRow>
               {paymentDetail.accountDetails.network && (
                 <InfoRow>
-                  <Typography variant="body2" color="text.secondary" minWidth={120}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    minWidth={120}
+                  >
                     Network:
                   </Typography>
                   <Typography variant="body2" fontWeight={500}>
@@ -424,7 +682,12 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
               labelId="payment-type-label"
               value={state.paymentType}
               label="Payment Type"
-              onChange={(e) => dispatch({ type: "SET_PAYMENT_TYPE", payload: e.target.value as "fiat" | "crypto" })}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_PAYMENT_TYPE",
+                  payload: e.target.value as "fiat" | "crypto",
+                })
+              }
               aria-label="Select payment type"
             >
               <MenuItem value="fiat">Fiat</MenuItem>
@@ -440,7 +703,15 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
               onChange={(e) =>
                 dispatch({
                   type: "SET_PAYMENT_CURRENCY",
-                  payload: e.target.value as "usd" | "cad" | "eur" | "gbp" | "btc" | "eth" | "usdt" | "",
+                  payload: e.target.value as
+                    | "usd"
+                    | "cad"
+                    | "eur"
+                    | "gbp"
+                    | "btc"
+                    | "eth"
+                    | "usdt"
+                    | "",
                 })
               }
               aria-label="Select currency"
@@ -464,21 +735,33 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
                 fullWidth
                 label="Bank Name"
                 value={state.bankName}
-                onChange={(e) => dispatch({ type: "SET_BANK_NAME", payload: e.target.value })}
+                onChange={(e) =>
+                  dispatch({ type: "SET_BANK_NAME", payload: e.target.value })
+                }
                 aria-label="Bank name"
               />
               <TextField
                 fullWidth
                 label="Account Number"
                 value={state.accountNumber}
-                onChange={(e) => dispatch({ type: "SET_ACCOUNT_NUMBER", payload: e.target.value })}
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_ACCOUNT_NUMBER",
+                    payload: e.target.value,
+                  })
+                }
                 aria-label="Account number"
               />
               <TextField
                 fullWidth
                 label="Account Name"
                 value={state.accountName}
-                onChange={(e) => dispatch({ type: "SET_ACCOUNT_NAME", payload: e.target.value })}
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_ACCOUNT_NAME",
+                    payload: e.target.value,
+                  })
+                }
                 aria-label="Account name"
               />
             </>
@@ -488,7 +771,12 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
                 fullWidth
                 label="Crypto Address"
                 value={state.cryptoAddress}
-                onChange={(e) => dispatch({ type: "SET_CRYPTO_ADDRESS", payload: e.target.value })}
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_CRYPTO_ADDRESS",
+                    payload: e.target.value,
+                  })
+                }
                 aria-label="Crypto address"
               />
               <FormControl fullWidth>
@@ -500,7 +788,13 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
                   onChange={(e) =>
                     dispatch({
                       type: "SET_NETWORK",
-                      payload: e.target.value as "erc20" | "trc20" | "bep20" | "polygon" | "solana" | "",
+                      payload: e.target.value as
+                        | "erc20"
+                        | "trc20"
+                        | "bep20"
+                        | "polygon"
+                        | "solana"
+                        | "",
                     })
                   }
                   aria-label="Select network"
@@ -537,7 +831,8 @@ const PaymentCard: FC<PaymentDetailProps> = ({ paymentDetail, userId }) => {
       >
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography variant="body1" color="text.primary">
-            Are you sure you want to delete this payment detail? This action cannot be undone.
+            Are you sure you want to delete this payment detail? This action cannot
+            be undone.
           </Typography>
           {state.paymentError && (
             <Typography variant="caption" color="error">

@@ -2,7 +2,7 @@ import { Box, Card, Divider, Grid, Typography, styled } from "@mui/material";
 import { FC, useState } from "react";
 import PaymentCard from "./PaymentCard";
 import MoreOptions from "./MoreOptions";
-import {User} from '../../../utils/interfaces'
+import { User } from "../../../utils/interfaces";
 import NotLoggedIn from "pages/errors/notLoggedIn";
 
 // Styled components
@@ -19,23 +19,34 @@ const InfoRow = styled(Box)(() => ({
 }));
 
 // Profile component
-const Profile: FC<{ user: User }> = ({ user }) => {
+const Profile: FC<{ user: User | null }> = ({ user }) => {
   const [moreEl, setMoreEl] = useState<null | HTMLElement>(null);
-
 
   const handleMoreClose = () => setMoreEl(null);
 
   // Format dateJoined
-  const formattedDateJoined = user && new Date(user.dateJoined).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDateJoined = user?.dateJoined
+    ? new Date(user.dateJoined).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "User has not updated status";
 
   // Format address
-  const formattedAddress = user && `${user.address.street}, ${user.address.city}, ${user.address.state}, ${user.address.country}`;
+  const formattedAddress =
+    user?.address?.street &&
+    user?.address?.city &&
+    user?.address?.state &&
+    user?.address?.country
+      ? `${user.address.street}, ${user.address.city}, ${user.address.state}, ${user.address.country}`
+      : "User has not updated status";
 
-  if(!user) return <NotLoggedIn />
+  if (!user) return <NotLoggedIn />;
+
+  // Check if paymentDetails is empty
+  const isPaymentDetailsEmpty =
+    !user.paymentDetails || user.paymentDetails.length === 0;
 
   return (
     <Grid container spacing={3}>
@@ -52,7 +63,9 @@ const Profile: FC<{ user: User }> = ({ user }) => {
                 Full Name:
               </Typography>
               <Typography variant="body2" fontWeight={500}>
-                {user.firstName} {user.lastName}
+                {user.firstName && user.lastName
+                  ? `${user.firstName} ${user.lastName}`
+                  : "User has not updated status"}
               </Typography>
             </InfoRow>
             <InfoRow>
@@ -60,7 +73,7 @@ const Profile: FC<{ user: User }> = ({ user }) => {
                 Email:
               </Typography>
               <Typography variant="body2" fontWeight={500}>
-                {user.email}
+                {user.email || "User has not updated status"}
               </Typography>
             </InfoRow>
             <InfoRow>
@@ -68,7 +81,7 @@ const Profile: FC<{ user: User }> = ({ user }) => {
                 Phone:
               </Typography>
               <Typography variant="body2" fontWeight={500}>
-                {user.phone}
+                {user.phone || "User has not updated status"}
               </Typography>
             </InfoRow>
             <InfoRow>
@@ -76,7 +89,7 @@ const Profile: FC<{ user: User }> = ({ user }) => {
                 Gender:
               </Typography>
               <Typography variant="body2" fontWeight={500}>
-                {user.gender}
+                {user.gender || "User has not updated status"}
               </Typography>
             </InfoRow>
             <InfoRow>
@@ -84,7 +97,7 @@ const Profile: FC<{ user: User }> = ({ user }) => {
                 Status:
               </Typography>
               <Typography variant="body2" fontWeight={500}>
-                {user.status}
+                {user.status || "User has not updated status"}
               </Typography>
             </InfoRow>
             <InfoRow>
@@ -111,15 +124,19 @@ const Profile: FC<{ user: User }> = ({ user }) => {
         <Typography variant="h6" fontWeight={600} mb={2}>
           Payment Accounts
         </Typography>
-        {user.paymentDetails.map((paymentDetail, index) => (
-          <PaymentCard
-            key={paymentDetail._id || `${user._id}-payment-${index}`}
-            paymentDetail={paymentDetail}
-            userId={user._id}
-          />
-        ))}
-
-
+        {isPaymentDetailsEmpty ? (
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+            Payment account not added
+          </Typography>
+        ) : (
+          user.paymentDetails.map((paymentDetail, index) => (
+            <PaymentCard
+              key={paymentDetail._id || `${user._id}-payment-${index}`}
+              paymentDetail={paymentDetail}
+              userId={user._id}
+            />
+          ))
+        )}
 
         {/* More options menu */}
         <MoreOptions anchorEl={moreEl} handleMoreClose={handleMoreClose} />
@@ -127,7 +144,5 @@ const Profile: FC<{ user: User }> = ({ user }) => {
     </Grid>
   );
 };
-
-
 
 export default Profile;

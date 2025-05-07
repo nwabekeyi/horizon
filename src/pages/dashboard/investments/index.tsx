@@ -144,11 +144,11 @@ const Investment: React.FC<InvestmentProps> = () => {
   }
 
   return (
-    <Box sx={{ p: 3, minHeight: '100%' }}>
+    <Box sx={{ minHeight: '100%', pt:4 }}>
       <Typography variant="h4" gutterBottom>
         Investment Opportunities
       </Typography>
-      <Paper elevation={3} sx={{ p: 3 }}>
+      <Paper elevation={3}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Button

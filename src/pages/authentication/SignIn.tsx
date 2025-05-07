@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent, KeyboardEvent } from 'react';
+import { useState, ChangeEvent, FormEvent, KeyboardEvent, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -74,6 +74,7 @@ const SignIn = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     error: forgotPasswordApiError,
@@ -129,14 +130,40 @@ const SignIn = () => {
   const handlePasswordKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !forgotPassword) {
       e.preventDefault();
-      const form = e.currentTarget.form;
-      if (form) form.requestSubmit();
+      if (formRef.current) {
+        formRef.current.requestSubmit();
+      } else {
+        // Fallback: Manually create and dispatch submit event
+        const form = e.currentTarget.form;
+        if (form) {
+          const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+          form.dispatchEvent(submitEvent);
+        }
+      }
+    }
+  };
+
+  const handleEmailKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && forgotPassword) {
+      e.preventDefault();
+      if (formRef.current) {
+        formRef.current.requestSubmit();
+      } else {
+        const form = e.currentTarget.form;
+        if (form) {
+          const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+          form.dispatchEvent(submitEvent);
+        }
+      }
     }
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
-    if (forgotPassword) setForgotPassword(false);
+    if (forgotPassword) {
+      setForgotPassword(false);
+      setUser({ email: '', password: '' });
+    }
   };
 
   if (loading) {
@@ -175,7 +202,9 @@ const SignIn = () => {
       </Box>
 
       <Box width={1}>
-        <Typography color='info.darker' variant="h3">{forgotPassword ? 'Forgot Password' : 'Sign In'}</Typography>
+        <Typography color="info.darker" variant="h3">
+          {forgotPassword ? 'Forgot Password' : 'Sign In'}
+        </Typography>
         <Typography mt={1.5} variant="body2" color="text.disabled">
           {forgotPassword
             ? 'Enter your email to reset your password.'
@@ -184,7 +213,7 @@ const SignIn = () => {
 
         <Divider sx={{ my: 3 }}>or</Divider>
 
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component="form" onSubmit={handleSubmit} ref={formRef}>
           {forgotPassword ? (
             <Stack direction="column" spacing={3}>
               <TextField
@@ -194,6 +223,7 @@ const SignIn = () => {
                 type="email"
                 value={user.email}
                 onChange={handleInputChange}
+                onKeyDown={handleEmailKeyDown}
                 variant="filled"
                 placeholder="mail@example.com"
                 autoComplete="email"
@@ -285,23 +315,6 @@ const SignIn = () => {
                 }}
               />
 
-              <Stack mt={1.5} alignItems="center" justifyContent="space-between">
-                <FormControlLabel
-                  control={<Checkbox id="checkbox" name="checkbox" size="medium" color="primary" />}
-                  label="Keep me logged in"
-                  sx={{ ml: -0.75 }}
-                />
-                <Link
-                  component="button"
-                  onClick={() => setForgotPassword(true)}
-                  fontSize="body2.fontSize"
-                  fontWeight={600}
-                  color='info.darker'
-                >
-                  Forgot password?
-                </Link>
-              </Stack>
-
               {error && (
                 <Typography color="error" variant="body2" mt={2}>
                   {error}
@@ -319,6 +332,23 @@ const SignIn = () => {
             </Typography>
           )}
         </Box>
+
+        <Stack mt={1.5} alignItems="center" justifyContent="space-between">
+          <FormControlLabel
+            control={<Checkbox id="checkbox" name="checkbox" size="medium" color="primary" />}
+            label="Keep me logged in"
+            sx={{ ml: -0.75 }}
+          />
+          <Link
+            component="button"
+            onClick={() => setForgotPassword(true)}
+            fontSize="body2.fontSize"
+            fontWeight={600}
+            color="info.darker"
+          >
+            Forgot password?
+          </Link>
+        </Stack>
 
         {!forgotPassword && (
           <Typography

@@ -257,12 +257,15 @@ const SignUp = () => {
       </Box>
 
       <Box width={1}>
-        <Typography variant="h3">{forgotPassword ? 'Forgot Password' : 'Sign Up'}</Typography>
+        <Typography variant="h3">{forgotPassword ? 'Forgot Password' : registrationFilled ? 'You are almost there' : 'Sign Up'}</Typography>
         <Typography mt={1.5} variant="body2" color="text.disabled">
-          {forgotPassword ? 'Enter your email to reset your password.' : 'Join us and start your journey today!'}
+          {
+          forgotPassword ? 'Enter your email to reset your password.' 
+          : registrationFilled ? 'Complete the registration and get access to your account'
+          : 'Join us and start your journey today!'}
         </Typography>
 
-        <Divider sx={{ my: 3 }}>or</Divider>
+        <Divider sx={{ my: 3 }}>{!registrationFilled ? 'or' : ''}</Divider>
 
         <Box component="form" onSubmit={handleSubmit}>
           {registrationFilled ? (

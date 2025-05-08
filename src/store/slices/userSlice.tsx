@@ -89,7 +89,7 @@ const userSlice = createSlice({
       state.isLoggedIn = false;
       state.token = null;
       localStorage.removeItem('token');
-      window.location.href = '/';
+      window.location.href = 'https://247activetrading.vercel.app';
     },
     addPaymentDetail: (state, action: PayloadAction<PaymentDetail>) => {
       if (state.user) {

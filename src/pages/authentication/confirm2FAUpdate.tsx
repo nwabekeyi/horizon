@@ -113,7 +113,7 @@ const Confirm2FAUpdate = () => {
         <Button
           variant="text"
           component={Link}
-          href="https://247activetrading.vercel.app"
+          href="https://247activetrading.com"
           sx={{ ml: -1.75, pl: 1, pr: 2 }}
           startIcon={
             <IconifyIcon

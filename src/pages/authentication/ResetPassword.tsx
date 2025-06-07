@@ -108,7 +108,7 @@ const PasswordReset = () => {
         <Button
           variant="text"
           component={Link}
-          href="c"
+          href="https://247activetrading.com"
           sx={{ ml: -1.75, pl: 1, pr: 2 }}
           startIcon={
             <IconifyIcon

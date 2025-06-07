@@ -5,14 +5,12 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Image from 'components/base/Image';
 import Logo from 'assets/images/logo-white.png';
-import { useNavigate } from 'react-router-dom';
 import { blue } from 'theme/colors';
 
 
 const AuthLayout = () => {
-const navugate = useNavigate();
 const goToHome = () => {
-  navugate('/');
+  location.href = 'https://247activetrading.com'
 };
 
   return (

@@ -34,7 +34,7 @@ const DrawerItems = ({ handleDrawerClose }: DrawerItemsProps) => {
         width="100%"
         display="flex"
       >
-        <ButtonBase component={Link} href="/" disableRipple>
+        <ButtonBase component={Link} href="/authentication/sign-in" disableRipple>
           <Image src={HorizonLogo} alt="logo" height={60} width={100} sx={{ mr: 1.75 }} />
         </ButtonBase>
       </Box>

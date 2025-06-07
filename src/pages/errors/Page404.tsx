@@ -1,6 +1,5 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { FC } from "react";
-import { NavLink } from "react-router-dom";
 import { FiAlertTriangle } from "react-icons/fi"; // Import a suitable icon
 
 const Page404: FC = () => {
@@ -26,8 +25,8 @@ const Page404: FC = () => {
         The page you requested could not be found.
       </Typography>
 
-      <NavLink
-        to="/"
+      <a
+        href="https://247activetrading.com"
         style={{
           display: "block",
           marginTop: "1.5rem",
@@ -37,7 +36,7 @@ const Page404: FC = () => {
         }}
       >
         Back to Home
-      </NavLink>
+      </a>
     </Box>
   );
 };
